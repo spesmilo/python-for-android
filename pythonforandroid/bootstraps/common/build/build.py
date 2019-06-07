@@ -539,17 +539,10 @@ main.py that loads it.''')
     versioned_name = (args.name.replace(' ', '').replace('\'', '') +
                       '-' + args.version)
 
-    generated_from_version = None
     if args.numeric_version is None:
-        generated_from_version = args.version
-        args.numeric_version = get_android_numeric_version(
-            args.version,
-            args.min_sdk_version,
-        )
-    args.numeric_version = validate_android_numeric_version(
-        args.numeric_version,
-        generated_from_version=generated_from_version,
-    )
+        # note: we disable p4a's automatic versionCode calculation, as we use our own scheme
+        raise ValueError("android versionCode needs to be set explicitly! (see android.numeric_version)")
+    args.numeric_version = validate_android_numeric_version(args.numeric_version)
 
     if args.intent_filters:
         with open(args.intent_filters) as fd:
@@ -922,8 +915,8 @@ tools directory of the Android SDK.
     ap.add_argument('--numeric-version', dest='numeric_version',
                     help=('The Android versionCode of the project. This must '
                           'be a positive decimal integer no greater than '
-                          '{}. If not given, it is automatically computed '
-                          'from --version.').format(MAX_ANDROID_VERSION_CODE))
+                          '{}. Required: the automatic computation from '
+                          '--version is disabled in this fork.').format(MAX_ANDROID_VERSION_CODE))
     ap.add_argument('--version', dest='version',
                     help=('The Android versionName of the project, shown to '
                           'users as the display version. Use '
