@@ -541,6 +541,8 @@ main.py that loads it.''')
 
     generated_from_version = None
     if args.numeric_version is None:
+        # note: we disable p4a's automatic versionCode calculation, as we use our own scheme
+        raise ValueError("android versionCode needs to be set explicitly! (see android.numeric_version)")
         generated_from_version = args.version
         args.numeric_version = get_android_numeric_version(
             args.version,
