@@ -8,35 +8,39 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.Runnable;
+import java.lang.Integer;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 
 import android.view.ViewGroup;
 import android.view.KeyEvent;
 import android.view.Window;
+import android.view.ViewGroup.LayoutParams;
+import android.view.WindowManager;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.util.Log;
-import android.widget.Toast;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.PowerManager;
-import android.content.Context;
-import android.content.pm.PackageManager;
+import android.widget.Toast;
 import android.widget.ImageView;
+import android.widget.AbsoluteLayout;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-
-import android.widget.AbsoluteLayout;
-import android.view.ViewGroup.LayoutParams;
-import android.view.WindowManager;
 
 import android.net.Uri;
 
@@ -47,11 +51,19 @@ import org.renpy.android.ResourceManager;
 
 import org.kivy.android.launcher.Project;
 
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbInterface;
+import android.hardware.usb.UsbEndpoint;
 
 import org.qtproject.qt.android.bindings.QtActivity;
 
+import org.kivy.android.PythonUsbListener;
+
 public class PythonActivity extends QtActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String TAG = "PythonActivity";
+    private static String ACTION_USB_PERMISSION = "org.kivy.android.USB_PERMISSION";
 
     private ResourceManager resourceManager = null;
     public static PythonActivity mActivity = null;
@@ -59,6 +71,8 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
     protected static ViewGroup mLayout;
 
     public static native void nativeSetenv(String name, String value);
+    public static native void setNativeDescriptor(int fd);
+    public static native void releaseNativeDescriptor();
 
     public String getAppRoot() {
         return getFilesDir().getAbsolutePath() + "/app";
@@ -84,13 +98,15 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
 
     private void loadNativeLib() {
         Log.v(TAG, "loading native lib");
+        String libPath = this.getFilesDir().getParentFile().getAbsolutePath() + "/lib";
+        Log.v(TAG, "native lib dir=" + libPath);
         try {
             System.loadLibrary("main");
         } catch (java.lang.UnsatisfiedLinkError e) {
             // alternate library load, some Android 5 devices fail
             // the above loadLibrary call.
             Log.v(TAG, "loading native lib (alt)");
-            String libPath = this.getFilesDir().getParentFile().getAbsolutePath() + "/lib";
+            // String libPath = this.getFilesDir().getParentFile().getAbsolutePath() + "/lib";
             System.load(libPath + "/libmain.so");
         }
     }
@@ -105,6 +121,21 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
         loadNativeLib();
 
         super.onCreate(savedInstanceState);
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_USB_HOST)) {
+            Log.v(TAG, "No System Feature USB HOST");
+            return;
+        }
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_USB_PERMISSION);
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            registerReceiver(usbPermissionReceiver, filter, 4);
+            // RECEIVER_EXPORTED = 2
+            // RECEIVER_NOT_EXPORTED = 4
+        } else {
+            registerReceiver(usbPermissionReceiver, filter);
+        }
     }
 
     public void setSecureWindow(boolean secure) {
@@ -142,6 +173,125 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
                 }
             }
         }._initialize(this, secure));
+    }
+
+    public List<UsbDevice> enumerateUsb() {
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+        for (UsbDevice usbDevice : deviceList.values()) {
+            Log.v(TAG, String.format("0x%04X", usbDevice.getVendorId()) + ":" +
+            String.format("0x%04X", usbDevice.getProductId()) + " " +
+            usbDevice.getDeviceName() + "/" + usbDevice.getProductName());
+        }
+
+        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+
+        while (deviceIterator.hasNext()) {
+            UsbDevice device = deviceIterator.next();
+            Log.i(TAG,"Model: " + device.getDeviceName());
+            Log.i(TAG,"Manufacturer: " + device.getManufacturerName());
+            Log.i(TAG,"Product name: " + device.getProductName());
+            Log.i(TAG,"ID: " + device.getDeviceId());
+            try {
+                Log.i(TAG,"Serial number: " + device.getSerialNumber());
+            } catch (SecurityException e) {
+            }
+            Log.i(TAG,"Version: " + device.getVersion());
+            Log.i(TAG,"Class: " + device.getDeviceClass()); // USB_CLASS_HID=3
+            Log.i(TAG,"  Subclass: " + device.getDeviceSubclass());
+            Log.i(TAG,"Protocol: " + device.getDeviceProtocol());
+            Log.i(TAG,"Vendor ID " + device.getVendorId());
+            Log.i(TAG,"Product ID: " + device.getProductId());
+            Log.i(TAG,"Interface count: " + device.getInterfaceCount());
+            Log.i(TAG,"---------------------------------------");
+            // Get interface details
+            for (int index = 0; index < device.getInterfaceCount(); index++) {
+                UsbInterface mUsbInterface = device.getInterface(index);
+                Log.i(TAG,"  *****     *****");
+                Log.i(TAG,"  Interface index: " + index);
+                Log.i(TAG,"  Interface ID: " + mUsbInterface.getId());
+                Log.i(TAG,"  Interface name: " + mUsbInterface.getName());
+                Log.i(TAG,"  Interface class: " + mUsbInterface.getInterfaceClass());
+                Log.i(TAG,"    Interface subclass: " + mUsbInterface.getInterfaceSubclass());
+                Log.i(TAG,"  Interface protocol: " + mUsbInterface.getInterfaceProtocol());
+                Log.i(TAG,"  Endpoint count: " + mUsbInterface.getEndpointCount());
+                // Get endpoint details
+                for (int epi = 0; epi < mUsbInterface.getEndpointCount(); epi++) {
+                    UsbEndpoint mEndpoint = mUsbInterface.getEndpoint(epi);
+                    Log.i(TAG,"    ++++   ++++   ++++");
+                    Log.i(TAG,"    Endpoint index: " + epi);
+                    Log.i(TAG,"    Attributes: " + mEndpoint.getAttributes());
+                    Log.i(TAG,"    Direction: " + mEndpoint.getDirection());
+                    Log.i(TAG,"    Number: " + mEndpoint.getEndpointNumber());
+                    Log.i(TAG,"    Interval: " + mEndpoint.getInterval());
+                    Log.i(TAG,"    Packet size: " + mEndpoint.getMaxPacketSize());
+                    Log.i(TAG,"    Type: " + mEndpoint.getType());
+                }
+            }
+        }
+
+        return new ArrayList<UsbDevice>(deviceList.values());
+    }
+
+    public void openUsbDevice(int id) {
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+        for (UsbDevice usbDevice : deviceList.values()) {
+            if (usbDevice.getDeviceId() == id) {
+                if (usbManager.hasPermission(usbDevice)) {
+                    Log.v(TAG, "USB DEVICE HAS PERMISSION");
+                    doOpenUsbDevice(usbDevice);
+                } else {
+                    Intent intent = new Intent(ACTION_USB_PERMISSION);
+                    intent.setPackage(getPackageName()); // !
+                    PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+                    Log.v(TAG, "USB DEVICE REQUESTING PERMISSION");
+                    usbManager.requestPermission(usbDevice, pendingIntent);
+                }
+                return;
+            }
+        }
+    }
+
+    private final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.v(TAG, "UsbPermissionReceiver.onReceive("+action+")");
+
+            if (ACTION_USB_PERMISSION.equals(action)) {
+                synchronized(this) {
+                    boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                    UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+
+                    if (granted) {
+                        // Permission granted, you can now interact with the USB device
+                        Log.v(TAG, "UsbPermissionReceiver.onReceive("+action+") granted");
+                        if (device != null) {
+                            Log.v(TAG, "UsbPermissionReceiver.onReceive("+action+") device=" + device.getProductName());
+                            doOpenUsbDevice(device);
+                        } else {
+                            Log.v(TAG, "UsbPermissionReceiver.onReceive("+action+") no device?");
+                        }
+                    } else {
+                        // Permission rejected, handle the case appropriately
+                        Log.v(TAG, "UsbPermissionReceiver.onReceive("+action+") declined");
+                        onUsbNotOpened(device.getDeviceId());
+                    }
+                }
+            }
+        }
+    };
+
+    private void doOpenUsbDevice(UsbDevice device) {
+        Log.v(TAG, "doOpenUsbDevice device=" + device.getProductName());
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        UsbDeviceConnection conn = usbManager.openDevice(device);
+        Log.v(TAG, "device serial=" + conn.getSerial());
+        int fd = conn.getFileDescriptor();
+        Log.v(TAG, "connection fd=" + fd);
+        this.onUsbOpened(device.getDeviceId(), fd);
     }
 
     /**
@@ -211,6 +361,45 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
         requestPermissionsWithRequestCode(permissions, 1);
     }
 
+    private List<PythonUsbListener> pythonUsbListeners = null;
+
+    public void registerPythonUsbListener(PythonUsbListener listener) {
+        if (this.pythonUsbListeners == null)
+            this.pythonUsbListeners = new ArrayList<PythonUsbListener>();
+        synchronized (this.pythonUsbListeners) {
+            this.pythonUsbListeners.add(listener);
+        }
+    }
+
+    public void unregisterPythonUsbListener(PythonUsbListener listener) {
+        if (this.pythonUsbListeners == null)
+            return;
+        synchronized (this.pythonUsbListeners) {
+            this.pythonUsbListeners.remove(listener);
+        }
+    }
+
+    protected void onUsbOpened(int device_id, int fd) {
+        if (this.pythonUsbListeners == null)
+            return;
+        synchronized (this.pythonUsbListeners) {
+            Iterator<PythonUsbListener> iterator = this.pythonUsbListeners.iterator();
+            while (iterator.hasNext()) {
+                (iterator.next()).onUsbOpened(device_id, fd);
+            }
+        }
+    }
+
+    protected void onUsbNotOpened(int device_id) {
+        if (this.pythonUsbListeners == null)
+            return;
+        synchronized (this.pythonUsbListeners) {
+            Iterator<PythonUsbListener> iterator = this.pythonUsbListeners.iterator();
+            while (iterator.hasNext()) {
+                (iterator.next()).onUsbNotOpened(device_id);
+            }
+        }
+    }
 
     //----------------------------------------------------------------------------
     // Listener interface for onNewIntent

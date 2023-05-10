@@ -116,6 +116,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
         super().build_arch(arch)
 
         env = self.get_recipe_env(arch)
+
         with current_directory(self.get_jni_dir()):
             shprint(sh.Command(join(self.ctx.ndk_dir, "ndk-build")),
                     "V=1", _env=env, _critical=True)

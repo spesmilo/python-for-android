@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <jni.h>
+#include <dlfcn.h>
 
 #include "android/log.h"
 
