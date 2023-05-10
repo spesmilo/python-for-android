@@ -1,0 +1,59 @@
+diff --git a/libusb/hid.c b/libusb/hid.c
+index 188e536..7daa9ef 100644
+--- a/libusb/hid.c
++++ b/libusb/hid.c
+@@ -118,6 +118,10 @@ extern "C" {
+ 
+ #ifdef DEBUG_PRINTF
+ #define LOG(...) fprintf(stderr, __VA_ARGS__)
++#elif defined(__ANDROID__)
++#include "android/log.h"
++#define LOG_TAG "libhidapi_android"
++#define LOG(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
+ #else
+ #define LOG(...) do {} while (0)
+ #endif
+@@ -542,7 +546,15 @@ int HID_API_EXPORT hid_init(void)
+ 		const char *locale;
+ 
+ 		/* Init Libusb */
+-		if (libusb_init(&usb_context))
++		int res = 0;
++#if defined(__ANDROID__)
++		const struct libusb_init_option options = {.option = LIBUSB_OPTION_NO_DEVICE_DISCOVERY, .value = {.ival = 1}};
++		res = libusb_init_context(&usb_context, &options, 1);
++		// v >=1.0.27
++#else
++		res = libusb_init(&usb_context);
++#endif
++		if (res)
+ 			return -1;
+ 
+ 		/* Set the locale if it's not set. */
+@@ -1208,8 +1220,13 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_libusb_wrap_sys_device(intptr_t sys
+ 	int res = 0;
+ 	int j = 0, k = 0;
+ 
+-	if(hid_init() < 0)
++	LOG("hid_libusb_wrap_sys_device: %d %d\n", sys_dev, interface_num);
++
++	res = hid_init();
++	if (res < 0) {
++		LOG("hid_init() borked: %d\n", res);
+ 		return NULL;
++	}
+ 
+ 	dev = new_hid_device();
+ 
+@@ -1252,8 +1269,10 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_libusb_wrap_sys_device(intptr_t sys
+ 		goto err;
+ 	}
+ 
+-	if (!hidapi_initialize_device(dev, conf_desc->bConfigurationValue, selected_intf_desc))
++	if (!hidapi_initialize_device(dev, conf_desc->bConfigurationValue, selected_intf_desc)) {
++		LOG("hidapi_initialize_device failed\n");
+ 		goto err;
++	}
+ 
+ 	return dev;
+ 

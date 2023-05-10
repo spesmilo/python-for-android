@@ -1,0 +1,18 @@
+diff --git a/libusb/libusbi.h b/libusb/libusbi.h
+index 6d19a930..64066261 100644
+--- a/libusb/libusbi.h
++++ b/libusb/libusbi.h
+@@ -325,7 +325,13 @@ int usbi_vsnprintf(char *dst, size_t size, const char *format, va_list args);
+ void usbi_log(struct libusb_context *ctx, enum libusb_log_level level,
+ 	const char *function, const char *format, ...) PRINTF_FORMAT(4, 5);
+ 
++#if defined(__ANDROID__)
++#include <android/log.h>
++#define LOG_TAG "libusb_android"
++#define _usbi_log(ctx, level, ...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
++#else
+ #define _usbi_log(ctx, level, ...) usbi_log(ctx, level, __func__, __VA_ARGS__)
++#endif
+ 
+ #define usbi_err(ctx, ...)	_usbi_log(ctx, LIBUSB_LOG_LEVEL_ERROR, __VA_ARGS__)
+ #define usbi_warn(ctx, ...)	_usbi_log(ctx, LIBUSB_LOG_LEVEL_WARNING, __VA_ARGS__)

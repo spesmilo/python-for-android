@@ -112,10 +112,53 @@ class Qt6Recipe(BootstrapNDKRecipe):
         env['QT_EXT_PATH'] = join(self.ctx.libs_dir, 'bin')
         return env
 
+    def prebuild_arch(self, arch):
+        # super().prebuild_arch(arch)
+        info('prebuild qt6 boot')
+        env = self.get_recipe_env(arch)
+        # libusb = Recipe.get_recipe('libusb', self.ctx)
+        # env['EXTRA_CFLAGS'] = env.get('EXTRA_CFLAGS', '') + \
+        #     ' -I' + join(libusb.get_build_dir(arch.arch), 'libusb')
+        # env['EXTRA_LDLIBS'] = env.get('EXTRA_LDLIBS', '') + \
+        #     ' -lusb-1.0 -L' + join(libusb.get_build_dir(arch.arch), 'libusb', '.libs')
+    #     # env['EXTRA_STATIC_LIBRARIES'] = env.get('EXTRA_STATIC_LIBRARIES', '') + \
+    #     #     ' ' + join(libusb.get_build_dir(arch.arch), 'libusb', '.libs', 'libusb-1.0')
+    #     # env['LIBUSB_INCLUDE_PATH'] = join(libusb.get_build_dir(arch.arch), 'libusb', 'include')
+    #     # env['LIBUSB_STATIC_LIB'] = join(libusb.get_build_dir(arch.arch), 'libusb', '.libs', 'libusb-1.0.a')
+    #     # env['LIBUSB_ROOT'] = join(libusb.get_build_dir(arch.arch), 'libusb')
+    #
+    #     libhidapi = Recipe.get_recipe('libhidapi', self.ctx)
+    #     env['EXTRA_CFLAGS'] = env.get('EXTRA_CFLAGS', '') + \
+    #         ' -I' + join(libhidapi.get_build_dir(arch.arch), 'install_target', 'include')
+    #     # env['EXTRA_LDLIBS'] = env.get('EXTRA_LDLIBS', '') + \
+    #     #     ' -lhidapi-libusb -L' + join(libhidapi.get_build_dir(arch.arch), 'install_target', 'lib')
+    #     # env['EXTRA_STATIC_LIBRARIES'] = env.get('EXTRA_STATIC_LIBRARIES', '') + \
+    #     #     ' ' + join(libhidapi.get_build_dir(arch.arch), 'install_target', 'lib', 'libhidapi-libusb')
+    #     # env['LIBHIDAPI_ROOT'] = join(libhidapi.get_build_dir(arch.arch), 'install_target')
+    #
+        with current_directory(self.get_jni_dir()):
+            shprint(sh.Command(join(self.ctx.ndk_dir, "ndk-build")),
+                    "V=1", _env=env, _critical=True)
+
     def build_arch(self, arch):
         super().build_arch(arch)
 
         env = self.get_recipe_env(arch)
+
+        # libusb = Recipe.get_recipe('libusb', self.ctx)
+        # env['EXTRA_CFLAGS'] = env.get('EXTRA_CFLAGS', '') + \
+        #     ' -I' + join(libusb.get_build_dir(arch.arch), 'libusb')
+        # env['EXTRA_LDLIBS'] = env.get('EXTRA_LDLIBS', '') + \
+        #     ' -lusb-1.0 -L' + join(libusb.get_build_dir(arch.arch), 'libusb', '.libs')
+        # # env['LIBUSB_ROOT'] = join(libusb.get_build_dir(arch.arch), 'libusb')
+
+        # libhidapi = Recipe.get_recipe('libhidapi', self.ctx)
+        # env['EXTRA_CFLAGS'] = env.get('EXTRA_CFLAGS', '') + \
+        #     ' -I' + join(libhidapi.get_build_dir(arch.arch), 'install_target', 'include')
+        # env['EXTRA_LDLIBS'] = env.get('EXTRA_LDLIBS', '') + \
+        #     ' -lhidapi-libusb -L' + join(libhidapi.get_build_dir(arch.arch), 'install_target', 'lib')
+        # env['LIBHIDAPI_ROOT'] = join(libhidapi.get_build_dir(arch.arch), 'install_target')
+
         with current_directory(self.get_jni_dir()):
             shprint(sh.Command(join(self.ctx.ndk_dir, "ndk-build")),
                     "V=1", _env=env, _critical=True)

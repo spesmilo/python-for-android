@@ -1,6 +1,24 @@
 LOCAL_PATH := $(call my-dir)
+# keep initial dir
+STORED_PATH := $(LOCAL_PATH)
+
+#include $(CLEAR_VARS)
+#LOCAL_PATH = $(LIBUSB_ROOT)
+#LOCAL_MODULE := libusb
+#LOCAL_EXPORT_C_INCLUDES := .
+#LOCAL_SRC_FILES := .libs/libusb-1.0.a
+#include $(PREBUILT_STATIC_LIBRARY)
+
+#include $(CLEAR_VARS)
+#LOCAL_PATH = $(LIBHIDAPI_ROOT)
+#LOCAL_MODULE := libhidapi-libusb
+#LOCAL_EXPORT_C_INCLUDES := include
+#LOCAL_SRC_FILES := lib/libhidapi-libusb.a
+#include $(PREBUILT_STATIC_LIBRARY)
+
 
 include $(CLEAR_VARS)
+LOCAL_PATH := $(STORED_PATH)
 
 LOCAL_MODULE := main
 
@@ -11,8 +29,10 @@ LOCAL_SRC_FILES := start.c pyjniusjni.c
 
 LOCAL_CFLAGS += -I$(PYTHON_INCLUDE_ROOT) $(EXTRA_CFLAGS)
 
-#LOCAL_SHARED_LIBRARIES := python_shared
-LOCAL_SHARED_LIBRARIES := python3.8
+LOCAL_SHARED_LIBRARIES := $(EXTRA_SHARED_LIBRARIES)
+#LOCAL_STATIC_LIBRARIES := libusb
+#libhidapi-libusb
+#$(EXTRA_STATIC_LIBRARIES)
 
 LOCAL_LDLIBS := -llog -ldl $(EXTRA_LDLIBS)
 

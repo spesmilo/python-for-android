@@ -1,0 +1,194 @@
+diff --git a/chid.pxd b/chid.pxd
+index 798c404..122d715 100644
+--- a/chid.pxd
++++ b/chid.pxd
+@@ -1,6 +1,7 @@
+ from libc.stddef cimport wchar_t, size_t
++from libc.stdint cimport intptr_t
+ 
+-cdef extern from "<hidapi.h>":
++cdef extern from "<hidapi_libusb.h>":
+     ctypedef struct hid_device:
+         pass
+ 
+@@ -47,3 +48,5 @@ cdef extern from "<hidapi.h>":
+     int hid_get_indexed_string(hid_device*, int, wchar_t *, size_t)
+     wchar_t *hid_error(hid_device *)
+     char* hid_version_str()
++
++    hid_device* hid_libusb_wrap_sys_device(intptr_t, int)
+diff --git a/hid.pyx b/hid.pyx
+index 01f1f31..ed6d753 100644
+--- a/hid.pyx
++++ b/hid.pyx
+@@ -3,6 +3,7 @@ import weakref
+ 
+ from chid cimport *
+ from libc.stddef cimport wchar_t, size_t
++from libc.stdint cimport intptr_t
+ 
+ 
+ __version__ = "0.14.0.post2"
+@@ -158,6 +159,15 @@ cdef class device:
+             raise IOError('open failed')
+         self._close = weakref.finalize(self, _closer.wrap(self._c_hid).close)
+ 
++    def open_fd(self, int fd, int iface_num):
++        if self._c_hid != NULL:
++            raise RuntimeError('already open')
++        cdef intptr_t cfd = fd
++        self._c_hid = hid_libusb_wrap_sys_device(cfd, iface_num)
++        if self._c_hid == NULL:
++            raise IOError('open failed')
++        self._close = weakref.finalize(self, _closer.wrap(self._c_hid).close)
++
+     def close(self):
+         """Close connection.
+ 
+diff --git a/setup.py b/setup.py
+index 7c79a38..b567b46 100755
+--- a/setup.py
++++ b/setup.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/python
+-from Cython.Build import cythonize
+-from setuptools import setup, Extension, Distribution
++# from Cython.Build import cythonize
++from setuptools import setup, Extension, Distribution, Command
+ from subprocess import call, PIPE, Popen
+ import os
+ import re
+@@ -74,6 +74,40 @@ def pkgconfig_configure_extension(ext, package):
+ 
+     return ext
+ 
++def has_libhidapi_env():
++    return bool(os.getenv("HIDAPI_CFLAGS") and os.getenv("HIDAPI_LIBS"))
++
++def has_libusb_env():
++    return bool(os.getenv("LIBUSB_CFLAGS") and os.getenv("LIBUSB_LIBS"))
++
++def env_configure_extension(ext, package):
++    # dynlinking log due to our logging patches in libhidapi and libusb
++    android_log_libs = '-llog'
++    ext.extra_link_args.extend(re.split(r"(?<!\\) ", android_log_libs))
++
++    # .. but link them statically here due to transitive dynamic loading issues
++    hidapi_static_lib = os.getenv("HIDAPI_LIB")
++    libusb_static_lib = os.getenv("LIBUSB_LIB")
++    ext.extra_objects = [libusb_static_lib, hidapi_static_lib]
++
++    hidapi_cflags = os.getenv("HIDAPI_CFLAGS")
++    #hidapi_libs = os.getenv("HIDAPI_LIBS") + ' -llog'
++
++    #ext.libraries = ['usb-1.0', 'hidapi-libusb']
++
++    ext.extra_compile_args.extend(re.split(r"(?<!\\) ", hidapi_cflags))
++    #ext.extra_link_args.extend(re.split(r"(?<!\\) ", hidapi_libs))
++
++    libusb_cflags = os.getenv("LIBUSB_CFLAGS")
++    #libusb_libs = os.getenv("LIBUSB_LIBS")
++
++    ext.extra_compile_args.extend(re.split(r"(?<!\\) ", libusb_cflags))
++    #ext.extra_link_args.extend(re.split(r"(?<!\\) ", libusb_libs))
++
++    print(f'compile: {ext.extra_compile_args}')
++    print(f'link: {ext.extra_link_args}')
++
++    return ext
+ 
+ def hidapi_src(platform):
+     return os.path.join(embedded_hidapi_topdir, platform, "hid.c")
+@@ -138,8 +172,11 @@ def hid_from_embedded_hidapi():
+ 
+         if HIDAPI_WITH_LIBUSB:
+             hidraw_module = "hidraw"
++            configure_extension = pkgconfig_configure_extension
++            if has_libusb_env():
++                configure_extension = env_configure_extension
+             modules.append(
+-                pkgconfig_configure_extension(
++                configure_extension(
+                     Extension(
+                         "hid",
+                         sources=["hid.pyx", hidapi_src("libusb")],
+@@ -157,7 +194,7 @@ def hid_from_embedded_hidapi():
+                 hidraw_module,
+                 sources=["hidraw.pyx", hidapi_src("linux")],
+                 include_dirs=[embedded_hidapi_include],
+-                libraries=["udev"],
++                # libraries=["udev"],
+             )
+         )
+ 
+@@ -187,9 +224,13 @@ def hid_from_system_hidapi():
+ 
+         if HIDAPI_WITH_LIBUSB:
+             hidraw_module = "hidraw"
++            configure_extension = pkgconfig_configure_extension
++            if has_libhidapi_env():
++                configure_extension = env_configure_extension
++            ext = Extension("hid", sources=["hid.pyx"])
+             modules.append(
+-                pkgconfig_configure_extension(
+-                    Extension("hid", sources=["hid.pyx"]), hidapi_libusb_pkgconfig
++                configure_extension(
++                    ext, hidapi_libusb_pkgconfig
+                 )
+             )
+         else:
+@@ -197,7 +238,7 @@ def hid_from_system_hidapi():
+             check_deprecated_without_libusb()
+ 
+         modules.append(
+-            pkgconfig_configure_extension(
++            configure_extension(
+                 Extension(hidraw_module, sources=["hidraw.pyx"]),
+                 hidapi_hidraw_pkgconfig,
+             )
+@@ -233,6 +274,36 @@ if HIDAPI_SYSTEM_HIDAPI:
+ else:
+     modules = hid_from_embedded_hidapi()
+ 
++class BuildCythonize(Command):
++    user_options = []
++
++    def initialize_options(self):
++        pass
++
++    def finalize_options(self):
++        pass
++
++    def run(self):
++        from Cython.Build import cythonize
++        cythonize(modules, language_level=3)
++
++# debug
++for m in modules:
++    print(f'name={m.name}')
++    print(f's={m.sources}')
++    print(f'i={m.include_dirs}')
++    print(f'm={m.define_macros}')
++    print(f'ld={m.library_dirs}')
++    print(f'rld={m.runtime_library_dirs}')
++    print(f'l={m.libraries}')
++    print(f'eo={m.extra_objects}')
++    print(f'ec={m.extra_compile_args}')
++    print(f'el={m.extra_link_args}')
++    print(f'es={m.export_symbols}')
++    print(f'so={m.swig_opts}')
++    print(f'dep={m.depends}')
++    print(f'lang={m.language}')
++
+ 
+ setup(
+     name="hidapi",
+@@ -257,6 +328,7 @@ setup(
+         "Programming Language :: Python :: 3.8",
+         "Programming Language :: Python :: 3.9",
+     ],
+-    ext_modules=cythonize(modules, language_level=3),
++    cmdclass={'build_cythonize': BuildCythonize},
++    ext_modules=modules, #cythonize(modules, language_level=3),
+     install_requires=["setuptools>=19.0"],
+ )
