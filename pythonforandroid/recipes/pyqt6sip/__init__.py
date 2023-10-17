@@ -2,8 +2,8 @@ from pythonforandroid.recipe import PythonRecipe
 
 
 class PyQt6SipRecipe(PythonRecipe):
-    version = '13.5.1'
-    url = "https://pypi.python.org/packages/source/P/PyQt6_sip/PyQt6_sip-{version}.tar.gz"
+    version = '13.10.3'
+    url = "https://pypi.python.org/packages/source/P/PyQt6_sip/pyqt6_sip-{version}.tar.gz"
     name = 'pyqt6sip'
 
     depends = ['setuptools']

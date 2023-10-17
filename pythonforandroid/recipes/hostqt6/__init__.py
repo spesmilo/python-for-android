@@ -19,12 +19,6 @@ class HostQt6Recipe(Recipe):
     version = qt6recipe.version
     url = qt6recipe.url
 
-    patches = [
-        'qml_codegen_stable_localvars.patch',
-        'consistent_shader_order_for_qsb1.patch',  # see https://bugreports.qt.io/browse/QTBUG-101923
-        'consistent_shader_order_for_qsb2.patch',  # follow-up to above, from https://codereview.qt-project.org/c/qt/qtbase/+/427477
-    ]
-
     build_subdir = 'native-build'
 
     built_libraries = {}
@@ -73,16 +67,18 @@ class HostQt6Recipe(Recipe):
             configure = configure.bake('-nomake', 'examples')
             configure = configure.bake('-make', 'tools')
             configure = configure.bake('-submodules', ','.join(
-                ['qtbase', 'qttools', 'qtmultimedia', 'qtquick3d']))
+                ['qtbase', 'qttools', 'qtmultimedia']))
             configure = configure.bake('-skip', ','.join(
                 ['qtactiveqt']))
 
             info(str(configure))
 
             shprint(configure, _tail=50, _critical=True)
-
-            shprint(sh.make, '-j' + str(cpu_count()), _critical=True)
-            shprint(sh.make, '-j' + str(cpu_count()), 'install', _critical=True)
+            cmake = sh.Command('cmake')
+            # shprint(sh.make, '-j' + str(cpu_count()), _critical=True)
+            # shprint(sh.make, '-j' + str(cpu_count()), 'install', _critical=True)
+            shprint(cmake, '--build', '.', '--parallel', _critical=True)
+            shprint(cmake, '--install', '.', _critical=True)
 
         # remove huge build tree
         shprint(sh.rm, '-rf', self.get_build_dir())
