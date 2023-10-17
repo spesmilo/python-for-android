@@ -7,15 +7,14 @@ import sh
 
 class Qt6Recipe(BootstrapNDKRecipe):
     name = 'qt6'
-    version = '6.4.3'
-    url = 'https://download.qt.io/archive/qt/6.4/{version}/single/qt-everywhere-src-{version}.tar.xz'
+    version = '6.10.1'
+    url = 'https://download.qt.io/archive/qt/6.10/{version}/single/qt-everywhere-src-{version}.tar.xz'
     dir_name = 'qt6'
 
     built_libraries = {'dummy': '.'}
 
     depends = ['python3', 'hostqt6']
     conflicts = ['sdl2', 'sdl3', 'genericndkbuild']
-    patches = ['add-way-to-disable-accessibility-env-var.patch']
 
     need_stl_shared = True
 
@@ -147,7 +146,6 @@ class Qt6Recipe(BootstrapNDKRecipe):
             configure = configure.bake('-submodules', ','.join(
                 ['qtbase', 'qtdeclarative', 'qtimageformats', 'qtmultimedia']))
             configure = configure.bake('-skip', ','.join(
-                # ['qtquick3d', 'qtquick3dphysics', 'qtactiveqt']))
                 ['qtactiveqt']))
 
             # openssl
@@ -155,13 +153,6 @@ class Qt6Recipe(BootstrapNDKRecipe):
             configure = configure.bake('-ssl', '-openssl-runtime')
             configure = configure.bake('OPENSSL_INCLUDE_DIR=' + join(openssl.get_build_dir(arch.arch), 'include'))
             configure = configure.bake('OPENSSL_LIBS=%s' % openssl.link_libs_flags().strip())
-
-            # doesn't seem to have an effect:
-            for exclude_feature in [
-                    'quickcontrols2-fusion', 'quickcontrols2-imagine',
-                    'quickcontrols2-universal', 'quickcontrols2-ios',
-                    'quickcontrols2-macos', 'quickcontrols2-windows']:
-                configure = configure.bake('-no-feature-%s' % exclude_feature)
 
             configure = configure.bake('--')
 
@@ -173,8 +164,9 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
             shprint(configure, _tail=50, _env=env, _critical=True)
 
-            shprint(sh.make, _env=env, _critical=True)
-            shprint(sh.make, 'install', _env=env, _critical=True)
+            cmake = sh.Command('cmake')
+            shprint(cmake, '--build', '.', '--parallel', _env=env, _critical=True)
+            shprint(cmake, '--install', '.', _env=env, _critical=True)
 
     def postbuild_arch(self, arch):
         super().postbuild_arch(arch)
