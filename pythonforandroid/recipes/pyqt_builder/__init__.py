@@ -2,8 +2,8 @@ from pythonforandroid.recipe import PythonRecipe
 
 
 class PyQtBuilderRecipe(PythonRecipe):
-    version = '1.14.1'
-    url = "https://pypi.python.org/packages/source/P/PyQt-builder/PyQt-builder-{version}.tar.gz"
+    version = '1.19.1'
+    url = "https://pypi.python.org/packages/source/P/PyQt-builder/pyqt_builder-{version}.tar.gz"
     name = 'pyqt_builder'
 
     depends = ['sip', 'packaging']

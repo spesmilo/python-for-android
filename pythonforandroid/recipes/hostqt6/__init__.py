@@ -1,6 +1,5 @@
 from os.path import join, isfile
 from os import environ
-from multiprocessing import cpu_count
 import sh
 
 from pythonforandroid.recipe import Recipe
@@ -63,16 +62,16 @@ class HostQt6Recipe(Recipe):
             configure = configure.bake('-nomake', 'examples')
             configure = configure.bake('-make', 'tools')
             configure = configure.bake('-submodules', ','.join(
-                ['qtbase', 'qttools', 'qtmultimedia', 'qtquick3d']))
+                ['qtbase', 'qttools', 'qtmultimedia']))
             configure = configure.bake('-skip', ','.join(
                 ['qtactiveqt']))
 
             info(str(configure))
 
             shprint(configure, _tail=50, _critical=True)
-
-            shprint(sh.make, '-j' + str(cpu_count()), _critical=True)
-            shprint(sh.make, '-j' + str(cpu_count()), 'install', _critical=True)
+            cmake = sh.Command('cmake')
+            shprint(cmake, '--build', '.', '--parallel', _critical=True)
+            shprint(cmake, '--install', '.', _critical=True)
 
         # remove huge build tree
         shprint(sh.rm, '-rf', self.get_build_dir())

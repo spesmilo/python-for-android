@@ -10,8 +10,8 @@ from pythonforandroid.toolchain import current_directory
 
 
 class PyQt6Recipe(Recipe):
-    version = '6.4.2'
-    url = "https://pypi.python.org/packages/source/P/PyQt6/PyQt6-{version}.tar.gz"
+    version = '6.10.1'
+    url = "https://pypi.python.org/packages/source/P/PyQt6/pyqt6-{version}.tar.gz"
     name = 'pyqt6'
 
     depends = ['qt6', 'pyjnius', 'setuptools', 'pyqt6sip', 'hostpython3', 'pyqt_builder']
@@ -35,6 +35,10 @@ class PyQt6Recipe(Recipe):
         project_dict = {}
         with open(join(build_dir, 'pyproject.toml'), 'r') as f:
             project_dict = toml.load(f)
+
+        info(repr(project_dict))
+        if 'tool' not in project_dict:
+            project_dict['tool'] = {'sip': {}}
 
         project_dict['tool']['sip']['project'] = {
             'android-abis': [arch.arch],
