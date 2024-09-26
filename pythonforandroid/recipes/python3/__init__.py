@@ -415,7 +415,14 @@ class Python3Recipe(TargetPythonRecipe):
         if self.ctx.optimize_python:
             # -OO = strip docstrings and asserts
             args.append('-OO')
-        args += ['-m', 'compileall', '-b', '-f', '-q', dir]
+        args += [
+            '-m', 'compileall',
+            '-b',
+            '-s', dir,  # for reproducible builds, do not leak paths into pyc
+            '-f',
+            '-q',
+            dir,
+        ]
         subprocess.call(args)
 
     def create_python_bundle(self, dirn, arch):
