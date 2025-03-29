@@ -41,6 +41,7 @@ import android.view.WindowManager;
 import android.net.Uri;
 
 import androidx.core.view.ViewCompat;
+import androidx.core.app.ActivityCompat;
 
 import org.renpy.android.ResourceManager;
 
@@ -49,7 +50,7 @@ import org.kivy.android.launcher.Project;
 
 import org.qtproject.qt.android.bindings.QtActivity;
 
-public class PythonActivity extends QtActivity {
+public class PythonActivity extends QtActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String TAG = "PythonActivity";
 
     private ResourceManager resourceManager = null;
@@ -142,6 +143,74 @@ public class PythonActivity extends QtActivity {
             }
         }._initialize(this, secure));
     }
+
+    /**
+     * Used by android.permissions p4a module to register a call back after
+     * requesting runtime permissions
+     **/
+    public interface PermissionsCallback {
+        void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults);
+    }
+
+    private PermissionsCallback permissionCallback;
+    private boolean havePermissionsCallback = false;
+
+    public void addPermissionsCallback(PermissionsCallback callback) {
+        permissionCallback = callback;
+        havePermissionsCallback = true;
+        Log.v(TAG, "addPermissionsCallback(): Added callback for onRequestPermissionsResult");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        Log.v(TAG, "onRequestPermissionsResult()");
+        if (havePermissionsCallback) {
+            Log.v(TAG, "onRequestPermissionsResult passed to callback");
+            permissionCallback.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    /**
+     * Used by android.permissions p4a module to check a permission
+     **/
+    public boolean checkCurrentPermission(String permission) {
+        if (android.os.Build.VERSION.SDK_INT < 23)
+            return true;
+
+        try {
+            java.lang.reflect.Method methodCheckPermission =
+                Activity.class.getMethod("checkSelfPermission", String.class);
+            Object resultObj = methodCheckPermission.invoke(this, permission);
+            int result = Integer.parseInt(resultObj.toString());
+            if (result == PackageManager.PERMISSION_GRANTED)
+                return true;
+        } catch (IllegalAccessException | NoSuchMethodException |
+                 InvocationTargetException e) {
+        }
+        return false;
+    }
+
+    /**
+     * Used by android.permissions p4a module to request runtime permissions
+     **/
+    public void requestPermissionsWithRequestCode(String[] permissions, int requestCode) {
+        if (android.os.Build.VERSION.SDK_INT < 23)
+            return;
+        try {
+            java.lang.reflect.Method methodRequestPermission =
+                Activity.class.getMethod("requestPermissions",
+                String[].class, int.class);
+            methodRequestPermission.invoke(this, permissions, requestCode);
+        } catch (IllegalAccessException | NoSuchMethodException |
+                 InvocationTargetException e) {
+        }
+    }
+
+    public void requestPermissions(String[] permissions) {
+        requestPermissionsWithRequestCode(permissions, 1);
+    }
+
 
     //----------------------------------------------------------------------------
     // Listener interface for onNewIntent
