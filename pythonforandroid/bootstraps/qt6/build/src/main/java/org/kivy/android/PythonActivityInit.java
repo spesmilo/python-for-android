@@ -13,8 +13,8 @@ import org.renpy.android.ResourceManager;
 
 import org.kivy.android.launcher.Project;
 
-import org.qtproject.qt5.android.QtActivityDelegate;
-import org.qtproject.qt5.android.multimedia.QtMultimediaUtils;
+import org.qtproject.qt.android.QtActivityDelegate;
+import org.qtproject.qt.android.multimedia.QtMultimediaUtils;
 
 /*
  * this class is added to android.app.static_init_classes metadata key.
@@ -34,7 +34,7 @@ public class PythonActivityInit {
 
         // QtMultimediaUtils doesn't get initialized with the activity instance (?)
         // force it here.
-        QtMultimediaUtils.setContext(mActivity);
+        // QtMultimediaUtils.setContext(mActivity);
     }
 
     public void setContext(Context context) {
@@ -46,10 +46,8 @@ public class PythonActivityInit {
         String app_root_dir = mActivity.getAppRoot();
 
         Log.v(TAG, "Ready to unpack");
-        ResourceManager resourceManager = new ResourceManager(mActivity);
-        PythonActivityUtil pythonActivityUtil = new PythonActivityUtil(mActivity, resourceManager);
-        pythonActivityUtil.unpackData("private", new File(app_root_dir));
-
+        PythonUtil.unpackAsset(mActivity, "private", new File(app_root_dir), true);
+        PythonUtil.unpackPyBundle(mActivity, mActivity.getApplicationInfo().nativeLibraryDir + "/" + "libpybundle", new File(app_root_dir), false);
         Log.v(TAG, "Device: " + android.os.Build.DEVICE);
         Log.v(TAG, "Model: " + android.os.Build.MODEL);
 
@@ -86,5 +84,8 @@ public class PythonActivityInit {
         PythonActivity.nativeSetenv("PYTHONHOME", app_root_dir);
         PythonActivity.nativeSetenv("PYTHONPATH", app_root_dir + ":" + app_root_dir + "/lib");
         PythonActivity.nativeSetenv("PYTHONOPTIMIZE", "2");
+
+        Log.v(TAG, "Setting env vars for Qt");
+        PythonActivity.nativeSetenv("QT_QUICK_CONTROLS_STYLE", "Material");
     }
 }
