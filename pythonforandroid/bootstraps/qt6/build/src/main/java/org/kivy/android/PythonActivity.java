@@ -15,13 +15,12 @@ import android.os.Bundle;
 import android.content.pm.PackageManager;
 import android.view.WindowManager;
 
-import android.support.v4.view.ViewCompat;
+import androidx.core.view.ViewCompat;
 
 import org.kivy.android.launcher.Project;
 
-import org.qtproject.qt5.android.bindings.QtActivity;
+import org.qtproject.qt.android.bindings.QtActivity;
 
-// Required by PythonService class
 public class PythonActivity extends QtActivity {
     private static final String TAG = "PythonActivity";
 
@@ -128,12 +127,46 @@ public class PythonActivity extends QtActivity {
     protected void onNewIntent(Intent intent) {
         if ( this.newIntentListeners == null )
             return;
-        this.onResume();
+        // this.onResume();
         synchronized ( this.newIntentListeners ) {
             Iterator<NewIntentListener> iterator = this.newIntentListeners.iterator();
             while ( iterator.hasNext() ) {
                 (iterator.next()).onNewIntent(intent);
             }
+        }
+    }
+
+    //----------------------------------------------------------------------------
+    // Listener interface for onActivityResult
+    //
+
+    public interface ActivityResultListener {
+        void onActivityResult(int requestCode, int resultCode, Intent data);
+    }
+
+    private List<ActivityResultListener> activityResultListeners = null;
+
+    public void registerActivityResultListener(ActivityResultListener listener) {
+        if ( this.activityResultListeners == null )
+            this.activityResultListeners = Collections.synchronizedList(new ArrayList<ActivityResultListener>());
+        this.activityResultListeners.add(listener);
+    }
+
+    public void unregisterActivityResultListener(ActivityResultListener listener) {
+        if ( this.activityResultListeners == null )
+            return;
+        this.activityResultListeners.remove(listener);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if ( this.activityResultListeners == null )
+            return;
+        this.onResume();
+        synchronized ( this.activityResultListeners ) {
+            Iterator<ActivityResultListener> iterator = this.activityResultListeners.iterator();
+            while ( iterator.hasNext() )
+                (iterator.next()).onActivityResult(requestCode, resultCode, intent);
         }
     }
 

@@ -6,7 +6,6 @@ library_dirs = os.environ['ANDROID_LIBS_DIR'].split(":")
 lib_dict = {
     'sdl2': ['SDL2', 'SDL2_image', 'SDL2_mixer', 'SDL2_ttf'],
     'sdl3': ['SDL3', 'SDL3_image', 'SDL3_mixer', 'SDL3_ttf'],
-    'qt5': ['main']
 }
 sdl_libs = lib_dict.get(
     os.environ['BOOTSTRAP'],

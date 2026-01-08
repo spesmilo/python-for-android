@@ -1,29 +1,32 @@
 import sh
 from os.path import join
 from pathlib import Path
-from multiprocessing import cpu_count
-import shutil
 import copy
 import toml
 
-from pythonforandroid.logger import (shprint, info, logger, debug)
+from pythonforandroid.logger import shprint, info
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.toolchain import current_directory
 
-class PyQt5Recipe(Recipe):
-    version = '5.15.9'
-    url = "https://pypi.python.org/packages/source/P/PyQt5/PyQt5-{version}.tar.gz"
-    name = 'pyqt5'
 
-    depends = ['qt5', 'pyjnius', 'setuptools', 'pyqt5sip', 'hostpython3', 'pyqt_builder']
+class PyQt6Recipe(Recipe):
+    version = '6.4.2'
+    url = "https://pypi.python.org/packages/source/P/PyQt6/PyQt6-{version}.tar.gz"
+    name = 'pyqt6'
 
-    BINDINGS = ['Qt', 'QtCore', 'QtNetwork', 'QtGui', 'QtQml', 'QtQuick', 'QtAndroidExtras']
+    depends = ['qt6', 'pyjnius', 'setuptools', 'pyqt6sip', 'hostpython3', 'pyqt_builder']
+
+    BINDINGS = ['QtCore', 'QtNetwork', 'QtGui', 'QtQml', 'QtQuick', 'QtMultimedia']
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
-        recipe = self.get_recipe('qt5', self.ctx)
-        qt5_env = recipe.get_recipe_env(arch)
-        env['TARGET_QMAKEPATH'] = qt5_env['TARGET_QMAKEPATH']
+
+        recipe = self.get_recipe('hostqt6', self.ctx)
+        env['LD_LIBRARY_PATH'] = join(recipe.get_install_dir(), 'lib')
+
+        recipe = self.get_recipe('qt6', self.ctx)
+        qt6_env = recipe.get_recipe_env(arch)
+        env['QT_EXT_PATH'] = qt6_env['QT_EXT_PATH']
 
         return env
 
@@ -38,7 +41,7 @@ class PyQt5Recipe(Recipe):
             'py-pylib-dir': self.ctx.python_recipe.link_root(arch.arch),
             'py-include-dir': self.ctx.python_recipe.include_root(arch.arch),
             'py-pylib-shlib': 'python{}'.format(self.ctx.python_recipe.link_version),
-            'target-dir': self.ctx.get_python_install_dir()
+            'target-dir': self.ctx.get_python_install_dir(arch.arch)
         }
 
         project_dict['tool']['sip']['bindings'] = {}
@@ -62,10 +65,10 @@ class PyQt5Recipe(Recipe):
         super().build_arch(arch)
 
         env = self.get_recipe_env(arch)
-        env['PATH'] = env['TARGET_QMAKEPATH'] + ":" + env['PATH']
+        env['PATH'] = env['QT_EXT_PATH'] + ":" + env['PATH']
         build_dir = self.get_build_dir(arch.arch)
         with current_directory(build_dir):
-            info("compiling pyqt5")
+            info("compiling pyqt6")
 
             hostpython = self.get_recipe('hostpython3', self.ctx)
             pythondir = hostpython.get_path_to_python()
@@ -85,11 +88,12 @@ class PyQt5Recipe(Recipe):
 
             shprint(buildcmd, _env=env, _tail=50, _critical=True)
 
-            with open(join(build_dir,'compile_finished'), 'w') as fp:
+            with open(join(build_dir, 'compile_finished'), 'w') as fp:
                 fp.write('')
 
     def should_build(self, arch):
         build_dir = self.get_build_dir(arch.arch)
-        return not Path(join(build_dir,'compile_finished')).is_file()
+        return not Path(join(build_dir, 'compile_finished')).is_file()
 
-recipe = PyQt5Recipe()
+
+recipe = PyQt6Recipe()

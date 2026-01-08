@@ -143,6 +143,12 @@ class Context:
         return directory
 
     @property
+    def aidl_dir(self):
+        directory = join(self.build_dir, 'aidl', self.bootstrap.distribution.name)
+        ensure_dir(directory)
+        return directory
+
+    @property
     def aars_dir(self):
         directory = join(self.build_dir, 'aars', self.bootstrap.distribution.name)
         ensure_dir(directory)
