@@ -16,6 +16,8 @@ import sys
 import tarfile
 import tempfile
 import time
+import glob
+import sh
 
 from fnmatch import fnmatch
 import jinja2
@@ -84,7 +86,7 @@ else:
 if PYTHON is not None and not exists(PYTHON):
     PYTHON = None
 
-if _bootstrap_name in ('sdl2', 'sdl3', 'webview', 'service_only', 'qt'):
+if _bootstrap_name in ('sdl2', 'sdl3', 'webview', 'service_only', 'qt', 'qt5'):
     WHITELIST_PATTERNS.append('pyconfig.h')
 
 environment = jinja2.Environment(loader=jinja2.FileSystemLoader(
@@ -287,6 +289,50 @@ def compile_py_file(python_file, optimize_python=True):
 
     return ".".join([os.path.splitext(python_file)[0], "pyc"])
 
+def make_qml_rcc(assets_dir):
+    def should_include_in_qrc(fname):
+        if os.path.isdir(fname):
+            return False
+        basename = os.path.basename(fname)
+        if basename in ('Makefile', ):
+            return False
+        ext = os.path.splitext(basename)[1]
+        if ext in ('.so', '.h', '.cpp', '.bat', '.pro', '.pri', '.qrc', '.txt'):
+            return False
+        return True
+
+    # hardcoded for now, should be made automatic/configurable
+    components = ['qtdeclarative', 'qtquickcontrols2', 'qtmultimedia']
+    qt5_path = join('jni', 'qt5')
+    with open('android_rcc_bundle.qrc', 'w') as qrc_file:
+        qrc_file.write('<!DOCTYPE RCC><RCC version="1.0"><qresource>')
+
+        for qmlcomp in components:
+            qmlfiles = glob.glob(join(qt5_path, qmlcomp, 'qml', '**'), recursive=True)
+            qmlfiles.sort()
+            for qmlfile in qmlfiles:
+                if should_include_in_qrc(qmlfile):
+                    alias = qmlfile.replace(join(qt5_path, qmlcomp), '')[1:]
+                    print(alias + ':' + qmlfile)
+                    qrc_file.write(f'<file alias="{alias}">{qmlfile}</file>')
+
+        # dirty hack to include material style files in resource file
+        # these should be available from the material style plugin
+        # but somehow this doesn't work (TODO)
+        basepath = join(qt5_path, 'qtquickcontrols2', 'src', 'imports', 'controls', 'material')
+        qmlfiles = glob.glob(join(basepath, '**'), recursive=True)
+        qmlfiles.sort()
+        for qmlfile in qmlfiles:
+            if should_include_in_qrc(qmlfile):
+                alias = qmlfile.replace(basepath, 'qml/QtQuick/Controls.2/Material')
+                print(alias + ':' + qmlfile)
+                qrc_file.write(f'<file alias="{alias}">{qmlfile}</file>')
+
+        qrc_file.write('</qresource></RCC>')
+
+    rcc = sh.Command(join(qt5_path, 'qtbase', 'bin', 'rcc'))
+    rcc('--root', '/android_rcc_bundle/', '--binary', '-o',
+        join(assets_dir, 'android_rcc_bundle.rcc'), 'android_rcc_bundle.qrc')
 
 def is_sdl_bootstrap():
     return get_bootstrap_name() in SDL_BOOTSTRAPS
@@ -400,6 +446,10 @@ main.py that loads it.''')
 
     # Remove extra env vars tar-able directory:
     rmdir(env_vars_tarpath)
+
+    if get_bootstrap_name() == "qt5":
+        print("Generating QML resource file")
+        make_qml_rcc(assets_dir)
 
     # Prepare some variables for templating process
     res_dir = "src/main/res"
@@ -588,6 +638,9 @@ main.py that loads it.''')
         sdk_dir = fileh.read().strip()
     sdk_dir = sdk_dir[8:]
 
+    if args.android_target_sdk_version == -1:
+        args.android_target_sdk_version = android_api
+
     # Try to build with the newest available build tools
     ignored = {".DS_Store", ".ds_store"}
     build_tools_versions = [x for x in listdir(join(sdk_dir, 'build-tools')) if x not in ignored]
@@ -702,6 +755,13 @@ main.py that loads it.''')
             init_classes=init_classes,
             arch=arch
         )
+
+    if get_bootstrap_name() == "qt5":
+        render(
+            'arrays.tmpl.xml',
+            join(res_dir, 'values', 'arrays.xml'),
+            arch=get_dist_info_for("archs")[0],
+            python_lib= "python%s" % get_python_version() )
 
     if exists(join("templates", "custom_rules.tmpl.xml")):
         render(
@@ -1000,6 +1060,9 @@ tools directory of the Android SDK.
                     action='store_true',
                     help=('Allow the --minsdk argument to be different from '
                           'the discovered ndk_api in the dist'))
+    ap.add_argument('--android-target-sdk-version', dest='android_target_sdk_version',
+                    default=-1, type=int,
+                    help='targetSdkVersion to put in manifest. Matches android-api by default.')
     ap.add_argument('--intent-filters', dest='intent_filters',
                     help=('Add intent-filters xml rules to the '
                           'AndroidManifest.xml file. The argument is a '
