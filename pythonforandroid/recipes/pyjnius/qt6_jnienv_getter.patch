@@ -16,9 +16,9 @@ diff -ru pyjnius-1.4.2.orig/jnius/jnius_jvm_android.pxi pyjnius-1.4.2/jnius/jniu
 @@ -1,6 +1,6 @@
  # on android, rely on SDL to get the JNI env
 -cdef extern JNIEnv *SDL_AndroidGetJNIEnv()
-+cdef extern JNIEnv *Qt5_AndroidGetJNIEnv()
++cdef extern JNIEnv *Qt6_AndroidGetJNIEnv()
  
  
  cdef JNIEnv *get_platform_jnienv() except NULL:
 -    return <JNIEnv*>SDL_AndroidGetJNIEnv()
-+    return <JNIEnv*>Qt5_AndroidGetJNIEnv()
++    return <JNIEnv*>Qt6_AndroidGetJNIEnv()

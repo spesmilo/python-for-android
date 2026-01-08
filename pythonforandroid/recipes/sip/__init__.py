@@ -6,7 +6,7 @@ class SipRecipe(CompiledComponentsPythonRecipe):
     url = "https://pypi.python.org/packages/source/s/sip/sip-{version}.tar.gz"
     name = 'sip'
 
-    depends = ['setuptools', 'packaging', 'toml', 'ply']
+    depends = ['setuptools', 'packaging', 'tomli', 'ply']
 
     call_hostpython_via_targetpython = False
     install_in_hostpython = True

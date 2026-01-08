@@ -16,8 +16,8 @@ import sys
 import tarfile
 import tempfile
 import time
-import glob
 import sh
+import glob
 
 from fnmatch import fnmatch
 import jinja2
@@ -42,6 +42,10 @@ def get_dist_info_for(key, error_if_missing=True):
 
 def get_hostpython():
     return get_dist_info_for('hostpython')
+
+
+def get_python_version():
+    return get_dist_info_for('python_version')
 
 
 def get_bootstrap_name():
@@ -86,7 +90,7 @@ else:
 if PYTHON is not None and not exists(PYTHON):
     PYTHON = None
 
-if _bootstrap_name in ('sdl2', 'sdl3', 'webview', 'service_only', 'qt', 'qt5'):
+if _bootstrap_name in ('sdl2', 'sdl3', 'webview', 'service_only', 'qt', 'qt6'):
     WHITELIST_PATTERNS.append('pyconfig.h')
 
 environment = jinja2.Environment(loader=jinja2.FileSystemLoader(
@@ -289,50 +293,41 @@ def compile_py_file(python_file, optimize_python=True):
 
     return ".".join([os.path.splitext(python_file)[0], "pyc"])
 
+
 def make_qml_rcc(assets_dir):
     def should_include_in_qrc(fname):
         if os.path.isdir(fname):
             return False
         basename = os.path.basename(fname)
-        if basename in ('Makefile', ):
-            return False
-        ext = os.path.splitext(basename)[1]
-        if ext in ('.so', '.h', '.cpp', '.bat', '.pro', '.pri', '.qrc', '.txt'):
-            return False
-        return True
+        if basename == 'qmldir':
+            return True
+        return False
 
     # hardcoded for now, should be made automatic/configurable
-    components = ['qtdeclarative', 'qtquickcontrols2', 'qtmultimedia']
-    qt5_path = join('jni', 'qt5')
+    components = ['QtQml', 'QtQuick', 'QtCore', 'QtMultimedia']
+    qt6_path = join('jni', 'qt6', 'qtbase', 'qml')
     with open('android_rcc_bundle.qrc', 'w') as qrc_file:
         qrc_file.write('<!DOCTYPE RCC><RCC version="1.0"><qresource>')
 
         for qmlcomp in components:
-            qmlfiles = glob.glob(join(qt5_path, qmlcomp, 'qml', '**'), recursive=True)
+            qmlfiles = glob.glob(join(qt6_path, qmlcomp, '**'), recursive=True)
             qmlfiles.sort()
             for qmlfile in qmlfiles:
                 if should_include_in_qrc(qmlfile):
-                    alias = qmlfile.replace(join(qt5_path, qmlcomp), '')[1:]
+                    alias = qmlfile.replace(qt6_path, 'qml')
                     print(alias + ':' + qmlfile)
                     qrc_file.write(f'<file alias="{alias}">{qmlfile}</file>')
 
-        # dirty hack to include material style files in resource file
-        # these should be available from the material style plugin
-        # but somehow this doesn't work (TODO)
-        basepath = join(qt5_path, 'qtquickcontrols2', 'src', 'imports', 'controls', 'material')
-        qmlfiles = glob.glob(join(basepath, '**'), recursive=True)
-        qmlfiles.sort()
-        for qmlfile in qmlfiles:
-            if should_include_in_qrc(qmlfile):
-                alias = qmlfile.replace(basepath, 'qml/QtQuick/Controls.2/Material')
-                print(alias + ':' + qmlfile)
-                qrc_file.write(f'<file alias="{alias}">{qmlfile}</file>')
-
         qrc_file.write('</qresource></RCC>')
 
-    rcc = sh.Command(join(qt5_path, 'qtbase', 'bin', 'rcc'))
+    hostqt6 = get_dist_info_for('hostqt6')
+    env = environ.copy()
+    env['LD_LIBRARY_PATH'] = join(hostqt6, 'lib')
+
+    rcc = sh.Command(join(hostqt6, 'libexec', 'rcc'))
     rcc('--root', '/android_rcc_bundle/', '--binary', '-o',
-        join(assets_dir, 'android_rcc_bundle.rcc'), 'android_rcc_bundle.qrc')
+        join(assets_dir, 'android_rcc_bundle.rcc'), 'android_rcc_bundle.qrc', _env=env)
+
 
 def is_sdl_bootstrap():
     return get_bootstrap_name() in SDL_BOOTSTRAPS
@@ -447,7 +442,7 @@ main.py that loads it.''')
     # Remove extra env vars tar-able directory:
     rmdir(env_vars_tarpath)
 
-    if get_bootstrap_name() == "qt5":
+    if get_bootstrap_name() == "qt6":
         print("Generating QML resource file")
         make_qml_rcc(assets_dir)
 
@@ -756,12 +751,12 @@ main.py that loads it.''')
             arch=arch
         )
 
-    if get_bootstrap_name() == "qt5":
+    if get_bootstrap_name() == "qt6":
         render(
             'arrays.tmpl.xml',
             join(res_dir, 'values', 'arrays.xml'),
             arch=get_dist_info_for("archs")[0],
-            python_lib= "python%s" % get_python_version() )
+            python_lib="python%s" % get_python_version())
 
     if exists(join("templates", "custom_rules.tmpl.xml")):
         render(
