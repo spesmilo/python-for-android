@@ -5,20 +5,21 @@ import copy
 import toml
 
 from pythonforandroid.logger import shprint, info
-from pythonforandroid.recipe import Recipe
+from pythonforandroid.recipe import PyProjectRecipe, Recipe
 from pythonforandroid.toolchain import current_directory
 
 
-class PyQt6Recipe(Recipe):
+class PyQt6Recipe(PyProjectRecipe):
     version = '6.10.1'
     url = "https://pypi.python.org/packages/source/P/PyQt6/pyqt6-{version}.tar.gz"
     name = 'pyqt6'
 
-    depends = ['qt6', 'pyjnius', 'setuptools', 'pyqt6sip', 'hostpython3', 'pyqt_builder']
+    depends = ['qt6', 'pyjnius', 'setuptools', 'pyqt6sip', 'hostpython3']
+    hostpython_prerequisites = ['sip', 'pyqt_builder']
 
     BINDINGS = ['QtCore', 'QtNetwork', 'QtGui', 'QtQml', 'QtQuick', 'QtMultimedia']
 
-    def get_recipe_env(self, arch):
+    def get_recipe_env(self, arch, **kwargs):
         env = super().get_recipe_env(arch)
 
         recipe = self.get_recipe('hostqt6', self.ctx)
@@ -55,37 +56,44 @@ class PyQt6Recipe(Recipe):
                     '-L{}'.format(self.ctx.python_recipe.link_root(arch.arch)),
                     '-lpython{}'.format(self.ctx.python_recipe.link_version)
                 ],
-                'disabled-features': ['PyQt_Desktop_OpenGL']
+                'disabled-features': ['PyQt_Wayland', 'PyQt_XCB']
             }
 
         with open(join(build_dir, 'pyproject.toml'), 'w') as f:
             toml.dump(project_dict, f)
 
-    def prebuild_arch(self, arch):
-        super().prebuild_arch(arch)
-        self.update_pyproject_toml(arch)
+    # def prebuild_arch(self, arch):
+    #     super().prebuild_arch(arch)
+    #     self.update_pyproject_toml(arch)
 
     def build_arch(self, arch):
-        super().build_arch(arch)
-
+        # super().build_arch(arch)  # NOTE: bypassing super().build_arch() might lead to issues..
+        self.update_pyproject_toml(arch)
+        self.install_hostpython_prerequisites()
         env = self.get_recipe_env(arch)
-        env['PATH'] = env['QT_EXT_PATH'] + ":" + env['PATH']
+        env['PATH'] = ':'.join([env['QT_EXT_PATH'], env['PATH']])
         build_dir = self.get_build_dir(arch.arch)
         with current_directory(build_dir):
             info("compiling pyqt6")
 
             hostpython = self.get_recipe('hostpython3', self.ctx)
             pythondir = hostpython.get_path_to_python()
-            site_packages = join(pythondir, 'Lib', 'site-packages')
+            # site_packages = join(pythondir, 'Lib', 'site-packages')
+            site_packages = join(hostpython.site_dir)
             env = copy.copy(env)
-            env['PYTHONPATH'] = f'{site_packages}:' + env.get('PYTHONPATH', '')
+            env['PYTHONPATH'] = ':'.join([
+                pythondir,
+                site_packages,
+                env.get('PYTHONPATH', '')
+            ])
 
             buildcmd = sh.Command(self.ctx.hostpython)
-            # buildcmd = buildcmd.bake('-m', 'sipbuild.tools.install')
-            sip_install = join(pythondir, 'usr', 'local', 'bin', 'sip-install')
+            sip_install = join(hostpython.site_bin, 'sip-install')
+            info(f'ENV: {env}')
             buildcmd = buildcmd.bake(sip_install)
             buildcmd = buildcmd.bake('--confirm-license', '--qt-shared', '--verbose')
             buildcmd = buildcmd.bake('--no-tools', '--no-qml-plugin', '--no-designer-plugin', '--no-dbus-python')
+            buildcmd = buildcmd.bake('--no-distinfo')
 
             for include in self.BINDINGS:
                 buildcmd = buildcmd.bake('--enable', include)
