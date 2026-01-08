@@ -13,9 +13,6 @@ import org.renpy.android.ResourceManager;
 
 import org.kivy.android.launcher.Project;
 
-import org.qtproject.qt.android.QtActivityDelegate;
-import org.qtproject.qt.android.multimedia.QtMultimediaUtils;
-
 /*
  * this class is added to android.app.static_init_classes metadata key.
  */
@@ -23,25 +20,21 @@ public class PythonActivityInit {
     private static final String TAG = "PythonActivityInit";
 
     private PythonActivity mActivity;
-    private QtActivityDelegate mLoader;
+    // private QtActivityDelegate mLoader;
 
     public void setActivity(Activity activity, Object o) {
         Log.v(TAG, "PythonActivityInit setActivity running");
         Log.v(TAG, activity.getClass().getName());
         mActivity = (PythonActivity)activity;
         Log.v(TAG, o.getClass().getName());
-        mLoader = (QtActivityDelegate)o;
-
-        // QtMultimediaUtils doesn't get initialized with the activity instance (?)
-        // force it here.
-        // QtMultimediaUtils.setContext(mActivity);
+        // mLoader = (QtActivityDelegate)o;
     }
 
     public void setContext(Context context) {
         Log.v(TAG, "PythonActivityInit setContext running");
         Log.v(TAG, context.getClass().getName());
 
-        Log.v(TAG, "activity env = " + mActivity.ENVIRONMENT_VARIABLES);
+        // Log.v(TAG, "activity env = " + mActivity.ENVIRONMENT_VARIABLES);
 
         String app_root_dir = mActivity.getAppRoot();
 

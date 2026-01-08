@@ -42,6 +42,12 @@ android {
         manifestPlaceholders = {{ args.manifest_placeholders}}
     }
 
+    // find aars
+    repositories {
+        flatDir {
+            dirs 'libs' // Points to the libs directory
+        }
+    }
 	
 	packagingOptions {
         jniLibs {
