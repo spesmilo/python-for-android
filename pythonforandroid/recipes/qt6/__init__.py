@@ -15,6 +15,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
     depends = ['python3', 'hostqt6']
     conflicts = ['sdl2', 'sdl3', 'genericndkbuild']
+    patches = ['main-lib-abi-suffix.patch']
 
     need_stl_shared = True
 
@@ -23,7 +24,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
         # TODO: don't hardcode, infer from build config
         self.built_libraries = {
             f'libQt6Core_{arch_name}.so': 'qtbase/lib',
-            # f'libQt6Concurrent_{arch_name}.so': 'qtbase/lib',
+            f'libQt6Concurrent_{arch_name}.so': 'qtbase/lib',
             f'libQt6Gui_{arch_name}.so': 'qtbase/lib',
             f'libQt6Multimedia_{arch_name}.so': 'qtbase/lib',
             f'libQt6MultimediaQuick_{arch_name}.so': 'qtbase/lib',
@@ -31,6 +32,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
             f'libQt6OpenGL_{arch_name}.so': 'qtbase/lib',
             f'libQt6Qml_{arch_name}.so': 'qtbase/lib',
             # f'libQt6QmlCore_{arch_name}.so': 'qtbase/lib',
+            f'libQt6QmlMeta_{arch_name}.so': 'qtbase/lib',
             f'libQt6QmlModels_{arch_name}.so': 'qtbase/lib',
             f'libQt6QmlWorkerScript_{arch_name}.so': 'qtbase/lib',
             f'libQt6Quick_{arch_name}.so': 'qtbase/lib',
@@ -47,6 +49,11 @@ class Qt6Recipe(BootstrapNDKRecipe):
             f'libQt6ShaderTools_{arch_name}.so': 'qtbase/lib',
             f'libQt6Svg_{arch_name}.so': 'qtbase/lib',
             # f'libQt6Xml_{arch_name}.so': 'qtbase/lib',
+            f'libQt6QuickControls2Basic_{arch_name}.so': 'qtbase/lib',
+            f'libQt6QuickControls2BasicStyleImpl_{arch_name}.so': 'qtbase/lib',
+            f'libQt6QuickControls2Material_{arch_name}.so': 'qtbase/lib',
+            f'libQt6QuickControls2MaterialStyleImpl_{arch_name}.so': 'qtbase/lib',
+
 
             f'libplugins_platforms_qtforandroid_{arch_name}.so': 'qtbase/plugins/platforms',
             f'libplugins_imageformats_qjpeg_{arch_name}.so': 'qtbase/plugins/imageformats',
@@ -151,8 +158,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
             # openssl
             openssl = Recipe.get_recipe('openssl', self.ctx)
             configure = configure.bake('-ssl', '-openssl-runtime')
-            configure = configure.bake('OPENSSL_INCLUDE_DIR=' + join(openssl.get_build_dir(arch.arch), 'include'))
-            configure = configure.bake('OPENSSL_LIBS=%s' % openssl.link_libs_flags().strip())
+            configure = configure.bake('OPENSSL_ROOT_DIR=' + openssl.get_build_dir(arch.arch))  # new?
 
             configure = configure.bake('--')
 
@@ -163,6 +169,8 @@ class Qt6Recipe(BootstrapNDKRecipe):
             configure = configure.bake('-DQT_HOST_PATH=%s' % x.get_install_dir())
 
             shprint(configure, _tail=50, _env=env, _critical=True)
+
+            shprint(sh.cat, 'config.summary', _critical=False)
 
             cmake = sh.Command('cmake')
             shprint(cmake, '--build', '.', '--parallel', _env=env, _critical=True)

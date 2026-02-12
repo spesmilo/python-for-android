@@ -31,14 +31,15 @@
     </string-array>
     <string-array name="qt_libs">
         <item>{{ arch }};c++_shared</item>
-        <item>{{ arch }};ssl1.1</item>
+        <item>{{ arch }};ssl</item>
         <item>{{ arch }};Qt6Core_{{ arch }}</item>
-        <!-- <item>{{ arch }};Qt6Concurrent_{{ arch }}</item> -->
+        <item>{{ arch }};Qt6Concurrent_{{ arch }}</item>
         <item>{{ arch }};Qt6Gui_{{ arch }}</item>
         <item>{{ arch }};Qt6Network_{{ arch }}</item>
         <item>{{ arch }};Qt6OpenGL_{{ arch }}</item>
         <item>{{ arch }};Qt6Qml_{{ arch }}</item>
         <!-- <item>{{ arch }};Qt6QmlCore_{{ arch }}</item> -->
+        <item>{{ arch }};Qt6QmlMeta_{{ arch }}</item>
         <item>{{ arch }};Qt6QmlModels_{{ arch }}</item>
         <item>{{ arch }};Qt6QmlWorkerScript_{{ arch }}</item>
         <item>{{ arch }};Qt6Quick_{{ arch }}</item>
@@ -57,5 +58,9 @@
 <!--         <item>{{ arch }};Qt6Xml_{{ arch }}</item> -->
         <item>{{ arch }};Qt6Multimedia_{{ arch }}</item>
         <item>{{ arch }};Qt6MultimediaQuick_{{ arch }}</item>
+        <item>{{ arch }};Qt6QuickControls2Basic_{{ arch }}</item>
+        <item>{{ arch }};Qt6QuickControls2BasicStyleImpl_{{ arch }}</item>
+        <item>{{ arch }};Qt6QuickControls2Material_{{ arch }}</item>
+        <item>{{ arch }};Qt6QuickControls2MaterialStyleImpl_{{ arch }}</item>
     </string-array>
 </resources>
