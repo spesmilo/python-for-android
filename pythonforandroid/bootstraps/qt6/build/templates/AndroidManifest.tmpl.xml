@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="{{ args.package }}"
       android:versionCode="{{ args.numeric_version }}"
       android:versionName="{{ args.version }}"
       android:installLocation="auto">
@@ -89,8 +88,8 @@
 
             <!--
             older apps provide the main library as the last bundled library; look for this if the main library isn't provided
-            <meta-data android:name="android.app.lib_name" android:value="main"/>
             -->
+            <meta-data android:name="android.app.lib_name" android:value="main"/>
 <!--             <meta-data android:name="android.app.repository" android:value="default"/> -->
 <!--            <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
             <meta-data android:name="android.app.bundled_libs_resource_id" android:resource="@array/bundled_libs"/>-->
