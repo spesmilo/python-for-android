@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import android.view.Window;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.util.Log;
 import android.os.Bundle;
 import android.content.pm.PackageManager;
@@ -56,6 +57,51 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
         }
     }
 
+    private void unpackAndSetEnvironment() {
+        String app_root_dir = getAppRoot();
+
+        Log.v(TAG, "Ready to unpack");
+        PythonUtil.unpackAsset(this, "private", new File(app_root_dir), true);
+        PythonUtil.unpackPyBundle(this, getApplicationInfo().nativeLibraryDir + "/" + "libpybundle", new File(app_root_dir), false);
+        Log.v(TAG, "Device: " + android.os.Build.DEVICE);
+        Log.v(TAG, "Model: " + android.os.Build.MODEL);
+
+        if (getIntent() != null && getIntent().getAction() != null &&
+                getIntent().getAction().equals("org.kivy.LAUNCH")) {
+            File path = new File(getIntent().getData().getSchemeSpecificPart());
+
+            Project p = Project.scanDirectory(path);
+            String entry_point = getEntryPoint(p.dir);
+            nativeSetenv("ANDROID_ENTRYPOINT", p.dir + "/" + entry_point);
+            nativeSetenv("ANDROID_ARGUMENT", p.dir);
+            nativeSetenv("ANDROID_APP_PATH", p.dir);
+
+            if (p != null) {
+                if (p.landscape) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                } else {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                }
+            }
+        } else {
+            String entry_point = getEntryPoint(app_root_dir);
+            nativeSetenv("ANDROID_ENTRYPOINT", entry_point);
+            nativeSetenv("ANDROID_ARGUMENT", app_root_dir);
+            nativeSetenv("ANDROID_APP_PATH", app_root_dir);
+        }
+
+        String mFilesDirectory = getFilesDir().getAbsolutePath();
+        Log.v(TAG, "Setting env vars for start.c and Python to use");
+        nativeSetenv("ANDROID_PRIVATE", mFilesDirectory);
+        nativeSetenv("ANDROID_UNPACK", app_root_dir);
+        nativeSetenv("PYTHONHOME", app_root_dir);
+        nativeSetenv("PYTHONPATH", app_root_dir + ":" + app_root_dir + "/lib");
+        nativeSetenv("PYTHONOPTIMIZE", "2");
+
+        Log.v(TAG, "Setting env vars for Qt");
+        nativeSetenv("QT_QUICK_CONTROLS_STYLE", "Material");
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.v(TAG, "My onCreate running");
@@ -63,6 +109,7 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
         this.mActivity = this;
 
         loadNativeLib();
+        unpackAndSetEnvironment();
 
         super.onCreate(savedInstanceState);
     }
