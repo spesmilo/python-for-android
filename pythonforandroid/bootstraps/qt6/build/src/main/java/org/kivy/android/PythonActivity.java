@@ -60,6 +60,13 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
 
     public static native void nativeSetenv(String name, String value);
 
+    private static PythonActivityInit init = null;
+
+    static {
+        Log.v(TAG, "PythonActivity static");
+        init = new PythonActivityInit();
+    }
+
     public String getAppRoot() {
         return getFilesDir().getAbsolutePath() + "/app";
     }
@@ -103,6 +110,8 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
         this.mActivity = this;
 
         loadNativeLib();
+        init.setActivity(this, this);
+        init.setContext(this);
 
         super.onCreate(savedInstanceState);
     }

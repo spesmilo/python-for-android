@@ -22,6 +22,10 @@ public class PythonActivityInit {
     private PythonActivity mActivity;
     // private QtActivityDelegate mLoader;
 
+    static {
+        Log.v(TAG, "PythonActivityInit static");
+    }
+
     public void setActivity(Activity activity, Object o) {
         Log.v(TAG, "PythonActivityInit setActivity running");
         Log.v(TAG, activity.getClass().getName());
