@@ -1,0 +1,20 @@
+--- a/qtbase/src/android/jar/src/org/qtproject/qt/android/QtWindow.java	2026-02-18 14:34:01.303592030 +0100
++++ b/qtbase/src/android/jar/src/org/qtproject/qt/android/QtWindow.java	2026-02-18 15:31:35.354646891 +0100
+@@ -162,6 +162,7 @@
+ 
+         // Android 9 and 10 emulators don't seem to be able
+         // to handle this, but let's have the logic here anyway
++        try {
+         DisplayCutout cutout = insets.getDisplayCutout();
+         if (cutout != null) {
+             left = Math.max(left, cutout.getSafeInsetLeft());
+@@ -169,7 +170,8 @@
+             right = Math.max(right, cutout.getSafeInsetRight());
+             bottom = Math.max(bottom, cutout.getSafeInsetBottom());
+         }
+-
++        } catch (Throwable e) {
++        }
+         // If a theme supports an action bar, sometimes it even if it's hidden
+         // the insets might report values including the bar's height, not entirely
+         // sure whether it's due to a delay or a bug, either way ensure the top
