@@ -2,8 +2,8 @@
 <resources>
     <string-array name="load_local_libs">
         <item>{{ arch }};libplugins_platforms_qtforandroid_{{ arch }}.so</item>
-        <item>{{ arch }};libplugins_multimedia_androidmediaplugin_{{ arch }}.so</item>
-        <item>{{ arch }};libQt6MultimediaQuick_{{ arch }}.so</item>
+        <!-- <item>{{ arch }};libplugins_multimedia_androidmediaplugin_{{ arch }}.so</item>
+        <item>{{ arch }};libQt6MultimediaQuick_{{ arch }}.so</item> -->
 
         <!--
         <item>{{ arch }};libplugins_networkinformation_qandroidnetworkinformation_{{ arch }}.so</item>
@@ -56,8 +56,8 @@
         <item>{{ arch }};Qt6ShaderTools_{{ arch }}</item>
         <item>{{ arch }};Qt6Svg_{{ arch }}</item>
 <!--         <item>{{ arch }};Qt6Xml_{{ arch }}</item> -->
-        <item>{{ arch }};Qt6Multimedia_{{ arch }}</item>
-        <item>{{ arch }};Qt6MultimediaQuick_{{ arch }}</item>
+<!--        <item>{{ arch }};Qt6Multimedia_{{ arch }}</item>
+        <item>{{ arch }};Qt6MultimediaQuick_{{ arch }}</item> -->
         <item>{{ arch }};Qt6QuickControls2Basic_{{ arch }}</item>
         <item>{{ arch }};Qt6QuickControls2BasicStyleImpl_{{ arch }}</item>
         <item>{{ arch }};Qt6QuickControls2Material_{{ arch }}</item>

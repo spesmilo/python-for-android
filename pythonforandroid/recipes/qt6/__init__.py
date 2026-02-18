@@ -15,7 +15,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
     depends = ['python3', 'hostqt6']
     conflicts = ['sdl2', 'sdl3', 'genericndkbuild']
-    patches = ['main-lib-abi-suffix.patch']
+    patches = ['main-lib-abi-suffix.patch', 'compat-windowinsets.patch']
 
     need_stl_shared = True
 
@@ -149,6 +149,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
             configure = configure.bake('-nomake', 'tests')
             configure = configure.bake('-nomake', 'examples')
             configure = configure.bake('-no-widgets')
+            configure = configure.bake('-no-feature-getentropy')  # getentropy is >=API28
 
             configure = configure.bake('-submodules', ','.join(
                 ['qtbase', 'qtdeclarative', 'qtimageformats', 'qtmultimedia']))
