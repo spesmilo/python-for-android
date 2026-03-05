@@ -84,5 +84,6 @@ public class PythonActivityInit {
 
         Log.v(TAG, "Setting env vars for Qt");
         PythonActivity.nativeSetenv("QT_QUICK_CONTROLS_STYLE", "Material");
+        PythonActivity.nativeSetenv("QT_ANDROID_DISABLE_ACCESSIBILITY", "1");
     }
 }
