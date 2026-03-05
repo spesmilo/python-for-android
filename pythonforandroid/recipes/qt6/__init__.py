@@ -7,7 +7,7 @@ import sh
 
 class Qt6Recipe(BootstrapNDKRecipe):
     name = 'qt6'
-    version = '6.10.1'
+    version = '6.10.2'
     url = 'https://download.qt.io/archive/qt/6.10/{version}/single/qt-everywhere-src-{version}.tar.xz'
     dir_name = 'qt6'
 
