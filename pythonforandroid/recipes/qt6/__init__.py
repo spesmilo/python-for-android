@@ -41,6 +41,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
             f'libQt6QuickDialogs2_{arch_name}.so': 'qtbase/lib',
             f'libQt6QuickDialogs2Utils_{arch_name}.so': 'qtbase/lib',
             f'libQt6QuickDialogs2QuickImpl_{arch_name}.so': 'qtbase/lib',
+            f'libQt6LabsFolderListModel_{arch_name}.so': 'qtbase/lib',
             f'libQt6QuickLayouts_{arch_name}.so': 'qtbase/lib',
             # f'libQt6QuickParticles_{arch_name}.so': 'qtbase/lib',
             f'libQt6QuickShapes_{arch_name}.so': 'qtbase/lib',
