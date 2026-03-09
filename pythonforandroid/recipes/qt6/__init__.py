@@ -151,6 +151,9 @@ class Qt6Recipe(BootstrapNDKRecipe):
             configure = configure.bake('-nomake', 'examples')
             configure = configure.bake('-no-widgets')
             configure = configure.bake('-no-feature-getentropy')  # getentropy is >=API28
+            # some devices run into issues w.r.t accessibility
+            # see also: https://github.com/spesmilo/electrum/pull/10485
+            configure = configure.bake('-no-feature-accessibility')
 
             configure = configure.bake('-submodules', ','.join(
                 ['qtbase', 'qtdeclarative', 'qtimageformats', 'qtmultimedia']))
