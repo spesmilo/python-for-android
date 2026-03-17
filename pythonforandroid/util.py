@@ -1,4 +1,5 @@
 import contextlib
+from typing import NamedTuple, List
 from unittest import mock
 from fnmatch import fnmatch
 import logging
@@ -178,3 +179,8 @@ def patch_wheel_setuptools_logging():
     and unreadable `sh` logs. Patching it prevents that.
     """
     return mock.patch("wheel._setuptools_logging.configure")
+
+
+class HashPinnedDependency(NamedTuple):
+    package: str
+    hashes: List[str]

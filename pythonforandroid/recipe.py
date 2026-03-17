@@ -24,7 +24,7 @@ from pythonforandroid.logger import (
     logger, info, warning, debug, shprint, info_main, error)
 from pythonforandroid.util import (
     current_directory, ensure_dir, BuildInterruptingException, rmdir, move,
-    touch, patch_wheel_setuptools_logging)
+    touch, patch_wheel_setuptools_logging, temp_directory, HashPinnedDependency)
 from pythonforandroid.util import load_source as import_recipe
 
 
@@ -1053,15 +1053,38 @@ class PythonRecipe(Recipe):
         if len(packages) == 0:
             return
 
-        pip_options = [
-            "install",
-            *packages,
-            "-q",
-        ]
-        if force_upgrade:
-            pip_options.append("--upgrade")
-        pip_env = self.get_hostrecipe_env()
-        shprint(self._host_recipe.pip, *pip_options, _env=pip_env)
+        # check if any hashes are declared
+        hash_pin = any(isinstance(package, HashPinnedDependency) for package in packages)
+
+        if not hash_pin:
+            warning('hostpython_prerequisites no hash pinning')
+
+        with temp_directory() as tempdir:
+            with open(join(tempdir, 'requirements.txt'), 'w') as reqfile:
+                for package in packages:
+                    if isinstance(package, HashPinnedDependency):
+                        hashes_str = ''
+                        for h in package.hashes:
+                            hashes_str += f' --hash={h}'
+                        requirement_str = f'{package.package}{hashes_str}'
+                    else:
+                        requirement_str = package
+                    reqfile.write(f'{requirement_str}\n')
+                    info(requirement_str)
+
+            pip_options = [
+                "install",
+                "-r", join(tempdir, "requirements.txt"),
+                "-q",
+            ]
+            if force_upgrade:
+                # Even for hash pinning --upgrade is needed to regen __pycache__ dirs
+                pip_options.append("--upgrade")
+            if hash_pin:
+                pip_options.append('--require-hashes')
+
+            pip_env = self.get_hostrecipe_env()
+            shprint(self._host_recipe.pip, *pip_options, _env=pip_env)
 
     def restore_hostpython_prerequisites(self, packages):
         _packages = []
@@ -1390,7 +1413,10 @@ class PyProjectRecipe(PythonRecipe):
             warning("Skipping build because it does not appear to be a Python project.")
             return
         self.install_hostpython_prerequisites(
-            packages=["build[virtualenv]", "pip", "setuptools", "patchelf"] + self.hostpython_prerequisites
+            packages=self._host_recipe.pyproject_base_dependencies
+        )
+        self.install_hostpython_prerequisites(
+            packages=self.hostpython_prerequisites
         )
 
         env = self.get_recipe_env(arch, with_flags_in_cc=True)
@@ -1612,7 +1638,10 @@ class MesonRecipe(PyProjectRecipe):
             super().build_arch(arch)
         else:
             self.install_hostpython_prerequisites(
-                packages=["build[virtualenv]", "pip", "setuptools", "patchelf"] + self.hostpython_prerequisites
+                packages=self._host_recipe.pyproject_base_dependencies
+            )
+            self.install_hostpython_prerequisites(
+                packages=self.hostpython_prerequisites
             )
 
 
