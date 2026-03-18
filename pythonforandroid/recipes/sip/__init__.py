@@ -8,11 +8,11 @@ class SipRecipe(PyProjectRecipe):
     url = "https://pypi.python.org/packages/source/s/sip/sip-{version}.tar.gz"
     name = 'sip'
 
-    depends = ['setuptools', 'packaging', 'tomli']
+    depends = ['setuptools', 'packaging']
 
     call_hostpython_via_targetpython = False
     install_in_hostpython = True
-    install_in_targetpython = False  # FIXME broken
+    install_in_targetpython = False
     site_packages_name = 'sipbuild'
 
     def build_arch(self, arch):
