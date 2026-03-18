@@ -13,8 +13,7 @@ class PyQt6Recipe(PyProjectRecipe):
     url = "https://pypi.python.org/packages/source/P/PyQt6/pyqt6-{version}.tar.gz"
     name = 'pyqt6'
 
-    depends = ['qt6', 'pyjnius', 'setuptools', 'pyqt6sip', 'hostpython3']
-    hostpython_prerequisites = ['sip', 'pyqt_builder']
+    depends = ['qt6', 'pyjnius', 'setuptools', 'pyqt6sip', 'hostpython3', 'pyqt_builder']
 
     BINDINGS = ['QtCore', 'QtNetwork', 'QtGui', 'QtQml', 'QtQuick', 'QtMultimedia']
 
@@ -73,7 +72,7 @@ class PyQt6Recipe(PyProjectRecipe):
 
             hostpython = self.get_recipe('hostpython3', self.ctx)
             buildcmd = sh.Command(self.ctx.hostpython)
-            sip_install = join(hostpython.site_bin, 'sip-install')
+            sip_install = join(hostpython.local_bin, 'sip-install')
             info(f'ENV: {env}')
             buildcmd = buildcmd.bake(sip_install)
             buildcmd = buildcmd.bake('--confirm-license', '--qt-shared', '--verbose')
