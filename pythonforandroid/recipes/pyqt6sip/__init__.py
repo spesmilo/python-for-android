@@ -6,7 +6,7 @@ class PyQt6SipRecipe(PythonRecipe):
     url = "https://pypi.python.org/packages/source/P/PyQt6_sip/pyqt6_sip-{version}.tar.gz"
     name = 'pyqt6sip'
 
-    depends = ['setuptools']
+    hostpython_prerequisites = ['setuptools']
 
     call_hostpython_via_targetpython = False
     site_packages_name = 'PyQt6.sip'
