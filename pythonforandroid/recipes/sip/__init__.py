@@ -1,6 +1,6 @@
 import toml
 from os.path import join
-from pythonforandroid.recipe import PythonRecipe, PyProjectRecipe
+from pythonforandroid.recipe import PyProjectRecipe
 from pythonforandroid.logger import info
 
 class SipRecipe(PyProjectRecipe):
@@ -8,7 +8,7 @@ class SipRecipe(PyProjectRecipe):
     url = "https://pypi.python.org/packages/source/s/sip/sip-{version}.tar.gz"
     name = 'sip'
 
-    depends = ['setuptools', 'packaging']
+    hostpython_prerequisites = ['setuptools', 'packaging']
 
     call_hostpython_via_targetpython = False
     install_in_hostpython = True
