@@ -11,7 +11,7 @@ class PyjniusRecipe(PyProjectRecipe):
     name = 'pyjnius'
     depends = [('genericndkbuild', 'sdl2', 'sdl3', 'qt6')]
     site_packages_name = 'jnius'
-    hostpython_prerequisites = ["Cython<3.2"]
+    hostpython_prerequisites = ["setuptools>=58.0.0", "wheel", "Cython<3.2"]
     patches = [
         "use_cython.patch",
         ('genericndkbuild_jnienv_getter.patch', will_build('genericndkbuild')),
