@@ -1100,6 +1100,7 @@ class PythonRecipe(Recipe):
 
             pip_options = [
                 "install",
+                "-vvvv",
                 "-r", join(tempdir, "requirements.txt"),
                 "--target", self._host_recipe.site_dir, "--python-version",
                 self.ctx.python_recipe.version,
@@ -1368,6 +1369,7 @@ class PyProjectRecipe(PythonRecipe):
         build_args = [
             "-m",
             "build",
+            "-vvvv",
             "--wheel",
             "--config-setting",
             "builddir={}".format(sub_build_dir),
@@ -1393,6 +1395,7 @@ class PyProjectRecipe(PythonRecipe):
         env = self.get_hostrecipe_env(arch)
         build_args = [
             "-m", "build",
+            "-vvvv",
             "--wheel",
             "-o", dist_dir,
             "--config-setting",
@@ -1406,6 +1409,7 @@ class PyProjectRecipe(PythonRecipe):
         pip_options = [
             'install',
             '--no-deps',
+            "-vvvv",
             '--root', self._host_recipe.site_root,
             whl
         ]
