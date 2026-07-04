@@ -1020,6 +1020,7 @@ class PythonRecipe(Recipe):
         with current_directory(self.get_build_dir(arch.arch)):
             if self.install_in_targetpython:
                 shprint(self._host_recipe.pip, 'install', '.',
+                        '--no-build-isolation', '--no-deps',
                         '--compile', '--target',
                         self.ctx.get_python_install_dir(arch.arch),
                         _env=hpenv, *self.setup_extra_args
@@ -1038,6 +1039,7 @@ class PythonRecipe(Recipe):
     def install_hostpython_package(self, arch):
         env = self.get_hostrecipe_env(arch)
         shprint(self._host_recipe.pip, 'install', '.',
+                '--no-build-isolation', '--no-deps',
                 '--compile',
                 '--root={}'.format(self._host_recipe.site_root),
                 _env=env, *self.setup_extra_args)
@@ -1084,6 +1086,7 @@ class PythonRecipe(Recipe):
                 pip_options.append("--upgrade")
             if hash_pin:
                 pip_options.append('--require-hashes')  # any pkg hash-pinned => *all* must be hash-pinned
+                pip_options.append('--no-build-isolation')
 
             pip_env = self.get_hostrecipe_env()
             shprint(self._host_recipe.pip, *pip_options, _env=pip_env)
@@ -1429,6 +1432,7 @@ class PyProjectRecipe(PythonRecipe):
         build_args = [
             "-m",
             "build",
+            "--no-isolation",
             "--wheel",
             "--config-setting",
             "builddir={}".format(sub_build_dir),
@@ -1454,6 +1458,7 @@ class PyProjectRecipe(PythonRecipe):
         env = self.get_hostrecipe_env(arch)
         build_args = [
             "-m", "build",
+            "--no-isolation",
             "--wheel",
             "-o", dist_dir,
             "--config-setting",
