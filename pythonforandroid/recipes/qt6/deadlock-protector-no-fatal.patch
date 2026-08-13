@@ -1,0 +1,21 @@
+Don't abort when the deadlock protector is contended (QTBUG-141579).
+
+The render thread calls eglSurface() from swapBuffers(); if another thread
+(typically QAndroidInputContext::runOnQtThread(), also the event dispatcher's
+suspend path) holds the process-wide protector at that moment, Qt >= 6.9
+qFatal()s. Qt <= 6.8 returned the existing surface here; QEGLPlatformContext::
+swapBuffers() then skips the swap on EGL_NO_SURFACE, and the surface is
+recreated on the next expose. Restore that behaviour.
+
+--- a/qtbase/src/plugins/platforms/android/qandroidplatformopenglwindow.cpp
++++ b/qtbase/src/plugins/platforms/android/qandroidplatformopenglwindow.cpp
+@@ -61,7 +61,8 @@
+         static constexpr char funcName[] = "QAndroidPlatformOpenGLWindow::eglSurface()";
+         QtAndroidPrivate::AndroidDeadlockProtector protector(funcName);
+         if (!protector.acquire()) {
+-            qFatal("Failed to acquire deadlock protector for %s.", funcName);
++            // QTBUG-141579: contention is transient, skip the frame instead of aborting
++            qWarning("Failed to acquire deadlock protector for %s.", funcName);
+             return m_eglSurface;
+         }
+
