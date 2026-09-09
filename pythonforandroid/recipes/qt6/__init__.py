@@ -1,15 +1,13 @@
-from pythonforandroid.recipe import BootstrapNDKRecipe
 from pythonforandroid.toolchain import Recipe, current_directory
 from pythonforandroid.logger import info, debug, shprint
 from os.path import join
 import sh
 
 
-class Qt6Recipe(BootstrapNDKRecipe):
+class Qt6Recipe(Recipe):
     name = 'qt6'
     version = '6.10.2'
     url = 'https://download.qt.io/archive/qt/6.10/{version}/single/qt-everywhere-src-{version}.tar.xz'
-    dir_name = 'qt6'
 
     built_libraries = {'dummy': '.'}
 
@@ -176,13 +174,14 @@ class Qt6Recipe(BootstrapNDKRecipe):
             shprint(cmake, '--build', '.', '--parallel', _env=env, _critical=True)
             shprint(cmake, '--install', '.', _env=env, _critical=True)
 
+    def get_qml_dir(self, arch):
+        return join(self.get_build_dir(arch.arch), 'qtbase', 'qml')
+
     def postbuild_arch(self, arch):
         super().postbuild_arch(arch)
         info('Copying Qt6 java class to classes build dir')
-        # TODO: neatly filter *.java and *.aidl
         with current_directory(self.get_build_dir(arch.arch)):
             shprint(sh.cp, '-a', join('qtbase', 'src', 'android', 'java', 'src', 'org'), self.ctx.javaclass_dir)
-            shprint(sh.cp, '-a', join('qtbase', 'src', 'android', 'java', 'src', 'org'), self.ctx.aidl_dir)
 
 
 recipe = Qt6Recipe()

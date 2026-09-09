@@ -312,7 +312,7 @@ def make_qml_rcc(assets_dir):
 
     # hardcoded for now, should be made automatic/configurable
     components = ['QtQml', 'QtQuick', 'QtCore', 'QtMultimedia']
-    qt6_path = join('jni', 'qt6', 'qtbase', 'qml')
+    qt6_path = get_dist_info_for('qt6_qml_dir')
     with open('android_rcc_bundle.qrc', 'w') as qrc_file:
         qrc_file.write('<!DOCTYPE RCC><RCC version="1.0"><qresource>')
 
