@@ -261,6 +261,7 @@ class Distribution:
                             'python_version': self.ctx.python_recipe.major_minor_version_string}
                 if self.ctx.bootstrap.name == 'qt6':
                     distinfo['hostqt6'] = Recipe.get_recipe('hostqt6', self.ctx).get_install_dir()
+                    distinfo['qt6_qml_dir'] = Recipe.get_recipe('qt6', self.ctx).get_qml_dir(self.ctx.archs[0])
                 json.dump(distinfo, fileh)
 
 
