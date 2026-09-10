@@ -42,10 +42,6 @@ android {
         manifestPlaceholders = {{ args.manifest_placeholders}}
     }
 
-    buildFeatures {
-        buildConfig = true
-    }
-
     // find aars
     repositories {
         flatDir {
