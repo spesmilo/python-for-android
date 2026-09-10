@@ -31,7 +31,7 @@ apply plugin: 'com.android.application'
 {% endif %}
 
 android {
-    // AGP 9 generates R (and BuildConfig) into the namespace package, and no longer
+    // AGP 9 generates R into the namespace package, and no longer
     // honours aapt's --custom-package. Electrum's java sources import
     // org.electrum.electrum.res.R, while args.package varies with APP_PACKAGE_DOMAIN
     // (mainnet vs testnet), so the namespace has to stay fixed and the real package
@@ -48,10 +48,6 @@ android {
         versionCode {{ args.numeric_version }}
         versionName '{{ args.version }}'
         manifestPlaceholders = {{ args.manifest_placeholders}}
-    }
-
-    buildFeatures {
-        buildConfig = true
     }
 
     // find aars
