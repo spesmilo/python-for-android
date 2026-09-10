@@ -1,5 +1,6 @@
 import os
 import pytest
+import sh
 import tempfile
 import types
 import unittest
@@ -7,9 +8,12 @@ import warnings
 from unittest import mock
 
 from pythonforandroid.build import Context
-from pythonforandroid.recipe import Recipe, TargetPythonRecipe, import_recipe
+from pythonforandroid.recipe import (
+    MesonRecipe, Recipe, TargetPythonRecipe, import_recipe
+)
 from pythonforandroid.archs import ArchAarch_64
 from pythonforandroid.bootstrap import Bootstrap
+from pythonforandroid.util import HashPinnedDependency
 from tests.test_bootstrap import BaseClassSetupBootstrap
 
 
@@ -93,6 +97,8 @@ class TestRecipe(unittest.TestCase):
         """
         # download should happen as the environment variable is not set
         recipe = DummyRecipe()
+        recipe.ctx = Context()
+        recipe.ctx._ndk_api = 36
         with mock.patch.object(Recipe, 'download') as m_download:
             recipe.download_if_necessary()
         assert m_download.call_args_list == [mock.call()]
@@ -194,6 +200,33 @@ class TestTargetPythonRecipe(unittest.TestCase):
 
         recipe = DummyTargetPythonRecipe()
         assert recipe.major_minor_version_string == '1.2'
+
+
+class TestMesonRecipe(unittest.TestCase):
+
+    def test_get_recipe_env_command_uses_env_path(self):
+        """
+        Meson commands can be installed in the hostpython environment without
+        being visible on the current Python process PATH.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            bin_dir = os.path.join(temp_dir, "bin")
+            os.mkdir(bin_dir)
+            meson_path = os.path.join(bin_dir, "meson")
+            with open(meson_path, "w") as file:
+                file.write("#!/bin/sh\necho fake meson\n")
+            os.chmod(meson_path, 0o755)
+
+            env = {"PATH": bin_dir}
+            recipe = MesonRecipe()
+
+            with mock.patch.dict(os.environ, {"PATH": os.devnull}):
+                with pytest.raises(sh.CommandNotFound):
+                    sh.meson("--version", _env=env)
+
+                meson = recipe.get_meson_command(env)
+
+            assert meson("--version").strip() == "fake meson"
 
 
 class TestLibraryRecipe(BaseClassSetupBootstrap, unittest.TestCase):
@@ -326,3 +359,75 @@ class TesSTLRecipe(BaseClassSetupBootstrap, unittest.TestCase):
         assert recipe.need_stl_shared, True
         recipe.postbuild_arch(arch)
         mock_install_stl_lib.assert_called_once_with(arch)
+
+    def test_recipe_download_headers(self):
+        """Download header can be created on the fly using environment variables."""
+        recipe = DummyRecipe()
+        with mock.patch.dict(os.environ, {f'DOWNLOAD_HEADERS_{recipe.name}': '[["header1","foo"],["header2", "bar"]]'}):
+            download_headers = recipe.download_headers
+        assert download_headers == [("header1", "foo"), ("header2", "bar")]
+
+
+class TestHashPinnedPrerequisites(BaseClassSetupBootstrap, unittest.TestCase):
+    """
+    hostpython prerequisites are pip-installed into hostpython and must be
+    hash pinned (`util.HashPinnedDependency`), otherwise the build aborts.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.recipe = Recipe.get_recipe('pyqt6sip', self.ctx)
+        self.recipe._host_recipe = mock.MagicMock()
+        self.recipe._host_recipe.pip = mock.sentinel.pip
+
+    @mock.patch('pythonforandroid.recipe.error')
+    @mock.patch('pythonforandroid.recipe.shprint')
+    def test_unpinned_prerequisites_abort(self, mock_shprint, mock_error):
+        with self.assertRaises(SystemExit):
+            self.recipe.install_hostpython_prerequisites(packages=['setuptools'])
+        mock_shprint.assert_not_called()
+
+    @mock.patch('pythonforandroid.recipe.error')
+    @mock.patch('pythonforandroid.recipe.shprint')
+    def test_partially_pinned_prerequisites_abort(self, mock_shprint, mock_error):
+        packages = [
+            HashPinnedDependency(package='setuptools==80.9.0', hashes=['sha256:abc']),
+            'wheel',
+        ]
+        with self.assertRaises(SystemExit):
+            self.recipe.install_hostpython_prerequisites(packages=packages)
+        mock_shprint.assert_not_called()
+
+    @mock.patch('pythonforandroid.recipe.shprint')
+    def test_pinned_prerequisites(self, mock_shprint):
+        packages = [
+            HashPinnedDependency(package='setuptools==80.9.0', hashes=['sha256:abc', 'sha256:def']),
+            HashPinnedDependency(package='Cython==3.1.8', hashes=['sha256:123']),
+        ]
+        requirements = {}
+
+        def fake_shprint(command, *args, **kwargs):
+            reqfile = args[args.index('-r') + 1]
+            with open(reqfile) as fileh:
+                requirements['content'] = fileh.read()
+
+        mock_shprint.side_effect = fake_shprint
+        self.recipe.install_hostpython_prerequisites(packages=packages)
+
+        mock_shprint.assert_called_once()
+        command, *args = mock_shprint.call_args.args
+        self.assertIs(command, mock.sentinel.pip)
+        self.assertEqual(args[0], 'install')
+        for option in ('--require-hashes', '--no-build-isolation', '--only-binary=:all:', '--upgrade'):
+            self.assertIn(option, args)
+        self.assertEqual(
+            requirements['content'],
+            'setuptools==80.9.0 --hash=sha256:abc --hash=sha256:def\n'
+            'Cython==3.1.8 --hash=sha256:123\n',
+        )
+
+    @mock.patch('pythonforandroid.recipe.shprint')
+    def test_no_prerequisites(self, mock_shprint):
+        self.recipe.hostpython_prerequisites = []
+        self.recipe.install_hostpython_prerequisites()
+        mock_shprint.assert_not_called()

@@ -86,6 +86,20 @@ class LibffiTestCase(PythonTestMixIn, TestCase):
         libc.printf(b"%s\n", b"Using the C printf function from Python ... ")
 
 
+class GreenletTestCase(PythonTestMixIn, TestCase):
+    module_import = 'greenlet._greenlet'
+
+    def test_run_module(self):
+        from greenlet import greenlet
+
+        def add_one(value):
+            return value + 1
+
+        worker = greenlet(add_one)
+        self.assertEqual(worker.switch(41), 42)
+        self.assertTrue(worker.dead)
+
+
 class RequestsTestCase(PythonTestMixIn, TestCase):
     module_import = 'requests'
 

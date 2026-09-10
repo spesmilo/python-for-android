@@ -24,8 +24,9 @@ class FreetypeRecipe(Recipe):
         https://sourceforge.net/projects/freetype/files/freetype2/2.5.3/
     """
 
-    version = '2.10.1'
-    url = 'https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'  # noqa
+    version = '2.14.1'
+    # url = 'https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'  # noqa
+    url = 'https://download-mirror.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'
     built_libraries = {'libfreetype.so': 'objs/.libs'}
 
     def get_recipe_env(self, arch=None, with_harfbuzz=False):
@@ -77,6 +78,7 @@ class FreetypeRecipe(Recipe):
             '--host={}'.format(arch.command_prefix),
             '--prefix={}'.format(prefix_path),
             '--without-bzip2',
+            '--without-brotli',
             '--with-png=no',
         }
         if not harfbuzz_in_recipes:

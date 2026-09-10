@@ -188,6 +188,7 @@ class NoAbbrevParser(argparse.ArgumentParser):
     This subclass alternative is follows the suggestion at
     https://bugs.python.org/issue14910.
     """
+
     def _get_option_tuples(self, option_string):
         return []
 
@@ -267,6 +268,52 @@ class ToolchainCL:
             '--arch', help='The archs to build for.',
             action='append', default=[])
 
+        generic_parser.add_argument(
+            '--extra-index-url',
+            help=(
+                'Extra package indexes to look for prebuilt Android wheels. '
+                'Can be used multiple times.'
+            ),
+            action='append',
+            default=[],
+            dest="extra_index_urls",
+        )
+
+        generic_parser.add_argument(
+            '--skip-prebuilt',
+            help=('Always build from source; do not use prebuilt wheels. '
+                  'This is the default in this fork, as prebuilt wheels '
+                  'cannot be hash-pinned.'),
+            action='store_true',
+            default=True,
+            dest="skip_prebuilt",
+        )
+        generic_parser.add_argument(
+            '--allow-prebuilt',
+            help='Use prebuilt wheels from an index when available.',
+            action='store_false',
+            dest="skip_prebuilt",
+        )
+
+        generic_parser.add_argument(
+            '--use-prebuilt-version-for',
+            help=(
+                'For these packages, ignore pinned versions and use the latest '
+                'prebuilt version from the extra index if available. '
+                'Only applies to packages with a recipe.'
+            ),
+            action='append',
+            default=[],
+            dest="use_prebuilt_version_for",
+        )
+
+        generic_parser.add_argument(
+            '--save-wheel-dir',
+            dest='save_wheel_dir',
+            default='',
+            help='Directory to store wheels built by PyProjectRecipe.',
+        )
+
         # Options for specifying the Distribution
         generic_parser.add_argument(
             '--dist-name', '--dist_name',
@@ -292,6 +339,20 @@ class ToolchainCL:
                   'disabling Python 3 core modules to save size'),
             dest="blacklist_requirements",
             default='')
+
+        generic_parser.add_argument(
+            '--use-setup-py', dest="use_setup_py",
+            action='store_true', default=False,
+            help="Process the setup.py of a project if present. " +
+                 "(Experimental!")
+        generic_parser.add_argument(
+            '--ignore-setup-py', dest="ignore_setup_py",
+            action='store_true', default=False,
+            help="Don't run the setup.py of a project if present. " +
+                 "This may be required if the setup.py is not " +
+                 "designed to work inside p4a (e.g. by installing " +
+                 "dependencies that won't work or aren't desired " +
+                 "on Android")
 
         generic_parser.add_argument(
             '--bootstrap',
@@ -354,22 +415,11 @@ class ToolchainCL:
         subparsers = parser.add_subparsers(dest='subparser_name',
                                            help='The command to run')
 
-        def add_parser(subparsers, *args, **kwargs):
-            """
-            argparse in python2 doesn't support the aliases option,
-            so we just don't provide the aliases there.
-            """
-            if 'aliases' in kwargs and sys.version_info.major < 3:
-                kwargs.pop('aliases')
-            return subparsers.add_parser(*args, **kwargs)
-
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'recommendations',
             parents=[generic_parser],
             help='List recommended p4a dependencies')
-        parser_recipes = add_parser(
-            subparsers,
+        parser_recipes = subparsers.add_parser(
             'recipes',
             parents=[generic_parser],
             help='List the available recipes')
@@ -377,33 +427,33 @@ class ToolchainCL:
             "--compact",
             action="store_true", default=False,
             help="Produce a compact list suitable for scripting")
-        add_parser(
-            subparsers, 'bootstraps',
+        subparsers.add_parser(
+            'bootstraps',
             help='List the available bootstraps',
             parents=[generic_parser])
-        add_parser(
-            subparsers, 'clean_all',
+        subparsers.add_parser(
+            'clean_all',
             aliases=['clean-all'],
             help='Delete all builds, dists and caches',
             parents=[generic_parser])
-        add_parser(
-            subparsers, 'clean_dists',
+        subparsers.add_parser(
+            'clean_dists',
             aliases=['clean-dists'],
             help='Delete all dists',
             parents=[generic_parser])
-        add_parser(
-            subparsers, 'clean_bootstrap_builds',
+        subparsers.add_parser(
+            'clean_bootstrap_builds',
             aliases=['clean-bootstrap-builds'],
             help='Delete all bootstrap builds',
             parents=[generic_parser])
-        add_parser(
-            subparsers, 'clean_builds',
+        subparsers.add_parser(
+            'clean_builds',
             aliases=['clean-builds'],
             help='Delete all builds',
             parents=[generic_parser])
 
-        parser_clean = add_parser(
-            subparsers, 'clean',
+        parser_clean = subparsers.add_parser(
+            'clean',
             help='Delete build components.',
             parents=[generic_parser])
         parser_clean.add_argument(
@@ -412,8 +462,7 @@ class ToolchainCL:
                   'number of arguments from "all", "builds", "dists", '
                   '"distributions", "bootstrap_builds", "downloads".'))
 
-        parser_clean_recipe_build = add_parser(
-            subparsers,
+        parser_clean_recipe_build = subparsers.add_parser(
             'clean_recipe_build', aliases=['clean-recipe-build'],
             help=('Delete the build components of the given recipe. '
                   'By default this will also delete built dists'),
@@ -426,8 +475,7 @@ class ToolchainCL:
             action='store_true',
             help='If passed, do not delete existing dists')
 
-        parser_clean_download_cache = add_parser(
-            subparsers,
+        parser_clean_download_cache = subparsers.add_parser(
             'clean_download_cache', aliases=['clean-download-cache'],
             help='Delete cached downloads for requirement builds',
             parents=[generic_parser])
@@ -437,8 +485,7 @@ class ToolchainCL:
             help='The recipes to clean (space-separated). If no recipe name is'
                   ' provided, the entire cache is cleared.')
 
-        parser_export_dist = add_parser(
-            subparsers,
+        parser_export_dist = subparsers.add_parser(
             'export_dist', aliases=['export-dist'],
             help='Copy the named dist to the given path',
             parents=[generic_parser])
@@ -472,19 +519,7 @@ class ToolchainCL:
             help='the directory with the app source code files' +
                  ' (containing your main.py entrypoint)',
             required=False, default=None)
-        parser_packaging.add_argument(
-            '--use-setup-py', dest="use_setup_py",
-            action='store_true', default=False,
-            help="Process the setup.py of a project if present. " +
-                 "(Experimental!")
-        parser_packaging.add_argument(
-            '--ignore-setup-py', dest="ignore_setup_py",
-            action='store_true', default=False,
-            help="Don't run the setup.py of a project if present. " +
-                 "This may be required if the setup.py is not " +
-                 "designed to work inside p4a (e.g. by installing " +
-                 "dependencies that won't work or aren't desired " +
-                 "on Android")
+
         parser_packaging.add_argument(
             '--release', dest='build_mode', action='store_const',
             const='release', default='debug',
@@ -508,57 +543,46 @@ class ToolchainCL:
             '--signkeypw', dest='signkeypw', action='store', default=None,
             help='Password for key alias')
 
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'aar', help='Build an AAR',
             parents=[parser_packaging])
 
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'apk', help='Build an APK',
             parents=[parser_packaging])
 
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'aab', help='Build an AAB',
             parents=[parser_packaging])
 
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'create', help='Compile a set of requirements into a dist',
             parents=[generic_parser])
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'archs', help='List the available target architectures',
             parents=[generic_parser])
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'distributions', aliases=['dists'],
             help='List the currently available (compiled) dists',
             parents=[generic_parser])
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'delete_dist', aliases=['delete-dist'], help='Delete a compiled dist',
             parents=[generic_parser])
 
-        parser_sdk_tools = add_parser(
-            subparsers,
+        parser_sdk_tools = subparsers.add_parser(
             'sdk_tools', aliases=['sdk-tools'],
             help='Run the given binary from the SDK tools dis',
             parents=[generic_parser])
         parser_sdk_tools.add_argument(
             'tool', help='The binary tool name to run')
 
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'adb', help='Run adb from the given SDK',
             parents=[generic_parser])
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'logcat', help='Run logcat from the given SDK',
             parents=[generic_parser])
-        add_parser(
-            subparsers,
+        subparsers.add_parser(
             'build_status', aliases=['build-status'],
             help='Print some debug information about current built components',
             parents=[generic_parser])
@@ -672,6 +696,11 @@ class ToolchainCL:
         self.ctx.activity_class_name = args.activity_class_name
         self.ctx.service_class_name = args.service_class_name
 
+        self.ctx.extra_index_urls = args.extra_index_urls
+        self.ctx.skip_prebuilt = args.skip_prebuilt
+        self.ctx.use_prebuilt_version_for = args.use_prebuilt_version_for
+        self.ctx.save_wheel_dir = args.save_wheel_dir
+
         # Each subparser corresponds to a method
         command = args.subparser_name.replace('-', '_')
         getattr(self, command)(args)
@@ -750,6 +779,7 @@ class ToolchainCL:
         """
         Prints recipes basic info, e.g.
         .. code-block:: bash
+
             python3      3.7.1
                 depends: ['hostpython3', 'sqlite3', 'openssl', 'libffi']
                 conflicts: []
@@ -1023,7 +1053,7 @@ class ToolchainCL:
                 # .../build/bootstrap_builds/sdl2-python3/gradlew
                 # if docker on windows, gradle contains CRLF
                 output = shprint(
-                    sh.Command('dos2unix'), gradlew._path.decode('utf8'),
+                    sh.Command('dos2unix'), gradlew._path,
                     _tail=20, _critical=True, _env=env
                 )
             if args.build_mode == "debug":

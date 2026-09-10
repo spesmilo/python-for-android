@@ -1,0 +1,16 @@
+--- a/qtbase/src/android/jar/src/org/qtproject/qt/android/QtLoader.java	2026-02-12 12:33:54.281974320 +0100
++++ b/qtbase/src/android/jar/src/org/qtproject/qt/android/QtLoader.java	2026-02-11 15:59:25.440947406 +0100
+@@ -474,8 +474,11 @@
+             m_mainLibName = getMetaData("android.app.lib_name");
+         // Load main lib
+         if (!loadMainLibrary(m_mainLibName + "_" + m_preferredAbi)) {
+-            Log.e(QtTAG, "Loading main library failed");
+-            return LoadingResult.Failed;
++            Log.e(QtTAG, "Loading main_abi library failed");
++            if (!loadMainLibrary(m_mainLibName)) {
++                Log.e(QtTAG, "Loading main library failed");
++                return LoadingResult.Failed;
++            }
+         }
+         m_librariesLoaded = true;
+         return LoadingResult.Succeeded;

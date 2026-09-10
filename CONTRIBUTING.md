@@ -66,44 +66,64 @@ latest python-for-android release that supported building Python 2 was version
 On August 2021, we added support for Android App Bundle (aab). As a
 collateral benefit, we now support multi-arch apk.
 
-## Creating a new release
+## Code Quality
 
-(These instructions are for core developers, not casual contributors.)
+### Python Linting
 
-New releases follow these steps:
+Python code is linted using flake8. Run it locally with:
 
-- Create a new branch `release-YYYY.MM.DD` based on the `develop` branch.
-  - `git checkout -b release-YYYY.MM.DD develop`
-- Create a Github pull request to merge `release-YYYY.MM.DD` into `master`.
-- Complete all steps in the [release checklist](#Release_checklist),
-  and document this in the pull request (copy the checklist into the PR text)
+```bash
+tox -e pep8
+```
 
-At this point, wait for reviewer approval and conclude any discussion that
-arises. To complete the release:
+### Java Linting
 
-- Merge the release branch to the `master` branch.
-- Also merge the release branch to the `develop` branch.
-- Tag the release commit in `master`, with tag `vYYYY.MM.DD`. Include a short
-  summary of the changes.
-- Release distributions and PyPI upload should be 
-  [handled by the CI](https://github.com/kivy/python-for-android/blob/v2020.04.29/.travis.yml#L60-L70).
-- Add to the GitHub release page (see e.g. [this example](https://github.com/kivy/python-for-android/releases/tag/v2019.06.06):
-  - The python-for-android README summary
-  - A short list of major changes in this release, if any
-  - A changelog summarising merge commits since the last release
-  - The release sdist and wheel(s)
+Java source files in the bootstrap directories are linted using
+[Spotless](https://github.com/diffplug/spotless) with Google Java Format
+(AOSP style). The CI runs this check automatically.
 
-## Release checklist
+**Local execution** (requires Java 17+):
 
-  - [ ] Check that the builds are passing
-    - [ ] [GitHub Action](https://github.com/kivy/python-for-android/actions)
-  - [ ] Run the tests locally via `tox`: this performs some long-running tests that are skipped on github-actions.
-  - [ ] Build and run the [on_device_unit_tests](https://github.com/kivy/python-for-android/tree/master/testapps/on_device_unit_tests) app using buildozer. Check that they all pass.
-  - [ ] Build (or download from github actions) and run the following [testapps](https://github.com/kivy/python-for-android/tree/master/testapps/on_device_unit_tests) for arch `armeabi-v7a` and `arm64-v8a`:
-    - [ ] on_device_unit_tests
-      - [ ] `armeabi-v7a` (`cd testapps/on_device_unit_tests && PYTHONPATH=.:../../ python3 setup.py apk  --ndk-dir=<your-ndk-dir> --sdk-dir=<your-sdk-dir> --arch=armeabi-v7a --debug`)
-      - [ ] `arm64-v8a` (`cd testapps/on_device_unit_tests && PYTHONPATH=.:../../ python3 setup.py apk  --ndk-dir=<your-ndk-dir> --sdk-dir=<your-sdk-dir> --arch=arm64-v8a --debug`)
-  - [ ] Check that the version number is correct
+```bash
+# Check for violations
+make java-lint
+
+# Auto-fix violations
+make java-lint-fix
+```
+
+The Makefile uses the Gradle wrapper (`gradlew`), which automatically downloads
+the correct Gradle version on first run. No manual Gradle installation is required.
+
+**Using Docker** (if you don't have Java 17):
+
+```bash
+# Check for violations
+make docker/java-lint
+
+# Auto-fix violations
+make docker/java-lint-fix
+```
+
+The Docker approach builds the project's Docker image (which includes Java 17)
+and runs the linting inside the container.
+
+**What gets linted:**
+
+- All `.java` files in `pythonforandroid/bootstraps/*/build/src/main/java/`
+- Excludes third-party code (`org/kamranzafar/jtar/`)
+
+**Formatting rules applied:**
+
+- Google Java Format with AOSP style (Android-friendly indentation)
+- Removal of unused imports
+- Trailing whitespace trimming
+- Files end with newline
+
+## Releasing
+
+The release process for core developers is documented separately in
+[RELEASING.md](RELEASING.md).
 
 ## How python-for-android uses `pip`
 
@@ -178,7 +198,7 @@ packages:
    of the project will be run. This happens with cross compilation set up
    (`CC`/`CFLAGS`/... set to use the
    proper toolchain) and a custom site-packages location.
-   The actual comand is a simple `pip install .` in the project folder
+   The actual command is a simple `pip install .` in the project folder
    with some extra options: e.g. all dependencies that were already
    installed by recipes will be pinned with a `-c` constraints file
    to make sure pip won't install them, and build isolation will be

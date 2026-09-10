@@ -1,6 +1,5 @@
 import io
 import os
-import sys
 import pytest
 from unittest import mock
 from pythonforandroid.recipe import Recipe
@@ -37,7 +36,6 @@ class TestToolchainCL:
         assert ex_info.value.code == 0
         assert m_print_help.call_args_list == [mock.call()]
 
-    @pytest.mark.skipif(sys.version_info < (3, 0), reason="requires python3")
     def test_unknown(self):
         """
         Calling with unknown args should print help and exit 1.
@@ -84,8 +82,9 @@ class TestToolchainCL:
         ]
         build_order = [
             'hostpython3', 'libffi', 'openssl', 'sqlite3', 'python3',
-            'genericndkbuild', 'setuptools', 'six', 'pyjnius', 'android',
+            'genericndkbuild', 'pyjnius', 'android',
         ]
+        # pyjnius no longer depends on six, so nothing is left for pip
         python_modules = []
         context = mock.ANY
         project_dir = None
@@ -116,7 +115,6 @@ class TestToolchainCL:
         assert ex_info.value.message == (
             'Android SDK dir was not specified, exiting.')
 
-    @pytest.mark.skipif(sys.version_info < (3, 0), reason="requires python3")
     def test_recipes(self):
         """
         Checks the `recipes` command prints out recipes information without crashing.

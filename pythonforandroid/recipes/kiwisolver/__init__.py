@@ -8,5 +8,13 @@ class KiwiSolverRecipe(PyProjectRecipe):
     depends = ['cppy']
     need_stl_shared = True
 
+    def get_recipe_env(self, arch, **kwargs):
+        """Add the Python include path, refs: #3115."""
+        env = super().get_recipe_env(arch, **kwargs)
+        flags = " -I" + self.ctx.python_recipe.include_root(arch.arch)
+        env["CFLAGS"] += flags
+        env["CPPFLAGS"] += flags
+        return env
+
 
 recipe = KiwiSolverRecipe()

@@ -1,24 +1,29 @@
-from pythonforandroid.recipe import CythonRecipe, IncludedFilesBehaviour
+from pythonforandroid.recipe import PyProjectRecipe, IncludedFilesBehaviour
 from pythonforandroid.util import current_directory
 from pythonforandroid import logger
 
 from os.path import join
 
 
-class AndroidRecipe(IncludedFilesBehaviour, CythonRecipe):
+class AndroidRecipe(IncludedFilesBehaviour, PyProjectRecipe):
     # name = 'android'
     version = None
     url = None
 
     src_filename = 'src'
 
-    depends = [('sdl2', 'genericndkbuild'), 'pyjnius']
+    depends = [('sdl3', 'sdl2', 'genericndkbuild', 'qt6'), 'pyjnius']
+    hostpython_prerequisites = ["Cython>=0.29,<3.2"]
 
     config_env = {}
 
-    def get_recipe_env(self, arch):
-        env = super().get_recipe_env(arch)
+    def get_recipe_env(self, arch, **kwargs):
+        env = super().get_recipe_env(arch, **kwargs)
         env.update(self.config_env)
+
+        if self.ctx.bootstrap.name == "qt":
+            env['ANDROID_MAIN_LIB'] = f'main_{arch.arch}'
+
         return env
 
     def prebuild_arch(self, arch):
@@ -34,8 +39,7 @@ class AndroidRecipe(IncludedFilesBehaviour, CythonRecipe):
         if isinstance(ctx_bootstrap, bytes):
             ctx_bootstrap = ctx_bootstrap.decode('utf-8')
         bootstrap = bootstrap_name = ctx_bootstrap
-        is_sdl2 = (bootstrap_name == "sdl2")
-        if bootstrap_name in ["sdl2", "webview", "service_only", "service_library", "qt"]:
+        if bootstrap_name in ["sdl2", "sdl3", "webview", "service_only", "service_library", "qt", "qt6"]:
             java_ns = u'org.kivy.android'
             jni_ns = u'org/kivy/android'
         else:
@@ -47,8 +51,14 @@ class AndroidRecipe(IncludedFilesBehaviour, CythonRecipe):
 
         config = {
             'BOOTSTRAP': bootstrap,
-            'IS_SDL2': int(is_sdl2),
+            'IS_SDL2': int(bootstrap_name == "sdl2"),
+            'IS_SDL3': int(bootstrap_name == "sdl3"),
             'PY2': 0,
+            'ANDROID_LIBS_DIR': "{}:{}:{}".format(
+                self.ctx.get_libs_dir(arch.arch),
+                join(self.ctx.bootstrap.build_dir, 'libs', arch.arch),
+                join(self.ctx.bootstrap.build_dir, 'obj', 'local', arch.arch)
+            ),
             'JAVA_NAMESPACE': java_ns,
             'JNI_NAMESPACE': jni_ns,
             'ACTIVITY_CLASS_NAME': self.ctx.activity_class_name,
@@ -73,10 +83,20 @@ class AndroidRecipe(IncludedFilesBehaviour, CythonRecipe):
                 ))
                 self.config_env[key] = str(value)
 
-            if is_sdl2:
+            if bootstrap_name == "sdl2":
                 fh.write('JNIEnv *SDL_AndroidGetJNIEnv(void);\n')
                 fh.write(
                     '#define SDL_ANDROID_GetJNIEnv SDL_AndroidGetJNIEnv\n'
+                )
+            elif bootstrap_name == "sdl3":
+                fh.write('JNIEnv *SDL_GetAndroidJNIEnv(void);\n')
+                fh.write(
+                    '#define SDL_ANDROID_GetJNIEnv SDL_GetAndroidJNIEnv\n'
+                )
+            elif bootstrap == "qt6":
+                fh.write('JNIEnv *Qt6_AndroidGetJNIEnv(void);\n')
+                fh.write(
+                    '#define SDL_ANDROID_GetJNIEnv Qt6_AndroidGetJNIEnv\n'
                 )
             else:
                 fh.write('JNIEnv *WebView_AndroidGetJNIEnv(void);\n')

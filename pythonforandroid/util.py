@@ -1,4 +1,5 @@
 import contextlib
+from typing import NamedTuple, List
 from unittest import mock
 from fnmatch import fnmatch
 import logging
@@ -48,7 +49,7 @@ def temp_directory():
                               temp_dir, Err_Fore.RESET)))
 
 
-def walk_valid_filens(base_dir, invalid_dir_names, invalid_file_patterns):
+def walk_valid_filens(base_dir, invalid_dir_names, invalid_file_patterns, excluded_dir_exceptions=None):
     """Recursively walks all the files and directories in ``dirn``,
     ignoring directories that match any pattern in ``invalid_dirns``
     and files that patch any pattern in ``invalid_filens``.
@@ -60,15 +61,22 @@ def walk_valid_filens(base_dir, invalid_dir_names, invalid_file_patterns):
 
     File and directory paths are evaluated as full paths relative to ``dirn``.
 
+    If ``excluded_dir_exceptions`` is given, any directory path that contains
+    any of those strings will *not* exclude subdirectories matching
+    ``invalid_dir_names``.
     """
 
+    excluded_dir_exceptions = [] if excluded_dir_exceptions is None else excluded_dir_exceptions
+
     for dirn, subdirs, filens in walk(base_dir):
+        allow_invalid_dirs = any(ex in dirn for ex in excluded_dir_exceptions)
 
         # Remove invalid subdirs so that they will not be walked
-        for i in reversed(range(len(subdirs))):
-            subdir = subdirs[i]
-            if subdir in invalid_dir_names:
-                subdirs.pop(i)
+        if not allow_invalid_dirs:
+            for i in reversed(range(len(subdirs))):
+                subdir = subdirs[i]
+                if subdir in invalid_dir_names:
+                    subdirs.pop(i)
 
         for filen in filens:
             for pattern in invalid_file_patterns:
@@ -79,17 +87,11 @@ def walk_valid_filens(base_dir, invalid_dir_names, invalid_file_patterns):
 
 
 def load_source(module, filename):
-    # Python 3.5+
     import importlib.util
-    if hasattr(importlib.util, 'module_from_spec'):
-        spec = importlib.util.spec_from_file_location(module, filename)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-    else:
-        # Python 3.3 and 3.4:
-        from importlib.machinery import SourceFileLoader
-        return SourceFileLoader(module, filename).load_module()
+    spec = importlib.util.spec_from_file_location(module, filename)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class BuildInterruptingException(Exception):
@@ -177,3 +179,8 @@ def patch_wheel_setuptools_logging():
     and unreadable `sh` logs. Patching it prevents that.
     """
     return mock.patch("wheel._setuptools_logging.configure")
+
+
+class HashPinnedDependency(NamedTuple):
+    package: str
+    hashes: List[str]

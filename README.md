@@ -12,21 +12,21 @@ It can generate:
 * [Android App Bundle](https://developer.android.com/guide/app-bundle/faq) 
   (AAB) files which can be shared on [Google Play Store](https://play.google.com/store/).
 * [Android Archive](https://developer.android.com/studio/projects/android-library)
-  (AAR) files which can be used as a re-usable bundle of resources for other 
+  (AAR) files which can be used as a reusable bundle of resources for other 
   projects.
  
 It supports multiple CPU architectures.
 
 It supports apps developed with [Kivy framework](http://kivy.org), but was
 built to be flexible about the backend libraries (through "bootstraps"), and 
-also supports [PySDL2](https://pypi.org/project/PySDL2/), and a
+also supports [PySDL2](https://pypi.org/project/PySDL2/), [PySDL3](https://github.com/Aermoss/PySDL3) and a
 [WebView](https://developer.android.com/reference/android/webkit/WebView) with
 a Python web server.
 
 It automatically supports dependencies on most pure Python packages. For other
 packages, including those that depend on C code, a special "recipe" must be 
 written to support cross-compiling. python-for-android comes with recipes for
-many of the mosty popular libraries (e.g. numpy and sqlalchemy) built in.
+many of the most popular libraries (e.g. numpy and sqlalchemy) built in.
 
 python-for-android works by cross-compiling the Python interpreter and its
 dependencies for Android devices, and bundling it with the app's python code
@@ -42,10 +42,10 @@ python-for-android is not limited to being used with Buildozer.
 [![GitHub contributors](https://img.shields.io/github/contributors-anon/kivy/python-for-android)](https://github.com/kivy/python-for-android/graphs/contributors)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-![PyPI - Version](https://img.shields.io/pypi/v/python-for-android)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-for-android)
+[![PyPI - Version](https://img.shields.io/pypi/v/python-for-android)](https://pypi.org/project/python-for-android/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-for-android)](https://pypi.org/project/python-for-android/)
 
-[![Unit tests & build apps](https://github.com/kivy/python-for-android/workflows/Unit%20tests%20&%20build%20apps/badge.svg?branch=develop)](https://github.com/kivy/python-for-android/actions?query=workflow%3A%22Unit+tests+%26+build+apps%22)
+[![Unit tests & build apps](https://github.com/kivy/python-for-android/actions/workflows/push.yml/badge.svg?branch=develop)](https://github.com/kivy/python-for-android/actions/workflows/push.yml)
 [![Coverage Status](https://coveralls.io/repos/github/kivy/python-for-android/badge.svg?branch=develop&kill_cache=1)](https://coveralls.io/github/kivy/python-for-android?branch=develop)
 [![Docker](https://github.com/kivy/python-for-android/actions/workflows/docker.yml/badge.svg)](https://github.com/kivy/python-for-android/actions/workflows/docker.yml)
 

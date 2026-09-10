@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">{{ args.name }}</string>
+    <string name="private_version">{{ private_version }}</string>
+    <string name="presplash_color">{{ args.presplash_color }}</string>
+
+    <string name="fatal_error_msg">Your application encountered a fatal error and cannot continue.</string>
+    <string name="unsupported_android_version">Unsupported Android version.</string>
+    <string name="use_local_qt_libs">1</string>
+    <string name="bundle_local_qt_libs">1</string>
+    <string name="system_libs_prefix"/>
+</resources>

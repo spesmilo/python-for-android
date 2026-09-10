@@ -25,6 +25,7 @@ expected_env_gcc_keys = {
     "CC",
     "CXX",
     "LDSHARED",
+    "LDCXXSHARED",
     "STRIP",
     "MAKE",
     "READELF",
@@ -62,6 +63,7 @@ class ArchSetUpBaseClass(object):
             recipes=["python3", "kivy"],
             archs=[self.TEST_ARCH],
         )
+        self.ctx.recipe_build_order = self.ctx.bootstrap.distribution.recipes
         self.ctx.python_recipe = Recipe.get_recipe("python3", self.ctx)
         # Here we define the expected compiler, which, as per ndk >= r19,
         # should be the same for all the tests (no more gcc compiler)
@@ -134,6 +136,10 @@ class TestArchARM(ArchSetUpBaseClass, unittest.TestCase):
         # check gcc compilers
         self.assertEqual(env["CC"].split()[0], self.expected_compiler)
         self.assertEqual(env["CXX"].split()[0], self.expected_compiler + "++")
+        self.assertEqual(
+            env["LDCXXSHARED"],
+            env["CXX"] + " " + " ".join(arch.common_ldshared),
+        )
         # check android binaries
         self.assertEqual(
             env["STRIP"].split()[0],
@@ -159,6 +165,10 @@ class TestArchARM(ArchSetUpBaseClass, unittest.TestCase):
         self.ctx.ccache = "/usr/bin/ccache"
         env = arch.get_env(with_flags_in_cc=False)
         self.assertNotIn(env["CFLAGS"], env["CC"])
+        self.assertEqual(
+            env["LDCXXSHARED"],
+            env["CXX"] + " " + " ".join(arch.common_ldshared),
+        )
         self.assertEqual(env["USE_CCACHE"], "1")
         self.assertEqual(env["NDK_CCACHE"], "/usr/bin/ccache")
 
