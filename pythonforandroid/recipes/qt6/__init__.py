@@ -13,7 +13,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
     built_libraries = {'dummy': '.'}
 
-    depends = ['python3', 'hostqt6']
+    depends = ['python3', 'hostqt6', 'ffmpeg_qt']
     conflicts = ['sdl2', 'sdl3', 'genericndkbuild']
     patches = ['main-lib-abi-suffix.patch', 'compat-windowinsets.patch']
 
@@ -69,7 +69,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
             f'libplugins_iconengines_qsvgicon_{arch_name}.so': 'qtbase/plugins/iconengines',
             f'libplugins_platforms_qtforandroid_{arch_name}.so': 'qtbase/plugins/platforms',
-            f'libplugins_multimedia_androidmediaplugin_{arch_name}.so': 'qtbase/plugins/multimedia',
+            f'libplugins_multimedia_ffmpegmediaplugin_{arch_name}.so': 'qtbase/plugins/multimedia',
             f'libplugins_networkinformation_qandroidnetworkinformation_{arch_name}.so': 'qtbase/plugins/networkinformation',
             f'libplugins_tls_qopensslbackend_{arch_name}.so': 'qtbase/plugins/tls',
             f'libplugins_tls_qcertonlybackend_{arch_name}.so': 'qtbase/plugins/tls',
@@ -154,6 +154,9 @@ class Qt6Recipe(BootstrapNDKRecipe):
             # some devices run into issues w.r.t accessibility
             # see also: https://github.com/spesmilo/electrum/pull/10485
             configure = configure.bake('-no-feature-accessibility')
+            # The FFmpeg backend uses Camera2 and discovers cameras without
+            # opening each one (which activates motorized selfie cameras).
+            configure = configure.bake('-feature-ffmpeg', '-no-feature-native_android_backend')
 
             configure = configure.bake('-submodules', ','.join(
                 ['qtbase', 'qtdeclarative', 'qtimageformats', 'qtmultimedia']))
@@ -166,6 +169,11 @@ class Qt6Recipe(BootstrapNDKRecipe):
             configure = configure.bake('OPENSSL_ROOT_DIR=' + openssl.get_build_dir(arch.arch))  # new?
 
             configure = configure.bake('--')
+            ffmpeg = Recipe.get_recipe('ffmpeg_qt', self.ctx)
+            configure = configure.bake('-DFFMPEG_DIR=' + ffmpeg.get_install_dir(arch.arch))
+            configure = configure.bake('-DQT_DEFAULT_MEDIA_BACKEND=ffmpeg')
+            # ffmpeg_qt stages its shared libraries into the APK itself.
+            configure = configure.bake('-DQT_DEPLOY_FFMPEG=OFF')
 
             from pythonforandroid.recipes.hostqt6 import HostQt6Recipe
             x = HostQt6Recipe()
