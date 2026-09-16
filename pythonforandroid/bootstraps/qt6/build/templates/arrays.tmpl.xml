@@ -2,7 +2,7 @@
 <resources>
     <string-array name="load_local_libs">
         <item>{{ arch }};libplugins_platforms_qtforandroid_{{ arch }}.so</item>
-        <item>{{ arch }};libplugins_multimedia_androidmediaplugin_{{ arch }}.so</item>
+        <item>{{ arch }};libplugins_multimedia_ffmpegmediaplugin_{{ arch }}.so</item>
 
         <!--
         <item>{{ arch }};libplugins_networkinformation_qandroidnetworkinformation_{{ arch }}.so</item>
@@ -55,6 +55,12 @@
         <item>{{ arch }};Qt6ShaderTools_{{ arch }}</item>
         <item>{{ arch }};Qt6Svg_{{ arch }}</item>
 <!--         <item>{{ arch }};Qt6Xml_{{ arch }}</item> -->
+        <!-- Dependencies of the FFmpeg plugin, in dependency order. -->
+        <item>{{ arch }};avutil</item>
+        <item>{{ arch }};swresample</item>
+        <item>{{ arch }};swscale</item>
+        <item>{{ arch }};avcodec</item>
+        <item>{{ arch }};avformat</item>
         <item>{{ arch }};Qt6Multimedia_{{ arch }}</item>
         <item>{{ arch }};Qt6MultimediaQuick_{{ arch }}</item>
         <item>{{ arch }};Qt6QuickControls2Basic_{{ arch }}</item>
