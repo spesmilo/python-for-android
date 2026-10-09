@@ -15,7 +15,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
     depends = ['python3', 'hostqt6', 'ffmpeg_qt']
     conflicts = ['sdl2', 'sdl3', 'genericndkbuild']
-    patches = ['main-lib-abi-suffix.patch', 'compat-windowinsets.patch']
+    patches = ['main-lib-abi-suffix.patch', 'compat-windowinsets.patch', 'qtmultimedia-aaudio-api26.patch']
 
     need_stl_shared = True
 
