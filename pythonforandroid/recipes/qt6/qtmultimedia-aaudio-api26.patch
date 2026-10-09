@@ -1,0 +1,79 @@
+--- a/qtmultimedia/src/multimedia/android/qaaudiostream.cpp
++++ b/qtmultimedia/src/multimedia/android/qaaudiostream.cpp
+@@ -53,6 +53,25 @@
+     setPolicy(policy);
+ };
+ 
++// The AAudio usage, content type and input preset functions are only available since API 28.
++// Resolve them at runtime so that the library can still be loaded on older Android versions.
++template <typename Function>
++Function resolveApi28Function(const char *name)
++{
++    if (QNativeInterface::QAndroidApplication::sdkVersion() < 28)
++        return nullptr;
++
++    auto handle = dlopen("libaaudio.so", RTLD_NOW);
++    Q_ASSERT(handle);
++    auto guard = qScopeGuard([handle] {
++        dlclose(handle);
++    });
++
++    auto function = reinterpret_cast<Function>(dlsym(handle, name));
++    Q_ASSERT(function);
++    return function;
++}
++
+ } // namespace
+ 
+ namespace QtAAudio {
+@@ -97,14 +116,22 @@
+     if (params.direction == AAUDIO_DIRECTION_OUTPUT) {
+         AAudioStreamBuilder_setPerformanceMode(m_builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+         setMMapPolicy(2); // Also set MMap policy to AUTO
+-        if (params.outputUsage != defaultParams.outputUsage)
+-            AAudioStreamBuilder_setUsage(m_builder, params.outputUsage);
+-        if (params.outputContentType != defaultParams.outputContentType)
+-            AAudioStreamBuilder_setContentType(m_builder, params.outputContentType);
++        static const auto setUsage = resolveApi28Function<decltype(&AAudioStreamBuilder_setUsage)>(
++                "AAudioStreamBuilder_setUsage");
++        static const auto setContentType =
++                resolveApi28Function<decltype(&AAudioStreamBuilder_setContentType)>(
++                        "AAudioStreamBuilder_setContentType");
++        if (setUsage && params.outputUsage != defaultParams.outputUsage)
++            setUsage(m_builder, params.outputUsage);
++        if (setContentType && params.outputContentType != defaultParams.outputContentType)
++            setContentType(m_builder, params.outputContentType);
+     } else {
+         AAudioStreamBuilder_setDirection(m_builder, params.direction);
+-        if (params.inputPreset != defaultParams.inputPreset)
+-            AAudioStreamBuilder_setInputPreset(m_builder, params.inputPreset);
++        static const auto setInputPreset =
++                resolveApi28Function<decltype(&AAudioStreamBuilder_setInputPreset)>(
++                        "AAudioStreamBuilder_setInputPreset");
++        if (setInputPreset && params.inputPreset != defaultParams.inputPreset)
++            setInputPreset(m_builder, params.inputPreset);
+     }
+ }
+ 
+@@ -145,15 +172,19 @@
+              && AAudioStream_getChannelCount(m_stream) == builder.format.channelCount()
+              && AAudioStream_getFormat(m_stream) == aaudioFormat(builder.format.sampleFormat()));
+ 
++    static const auto getUsage =
++            resolveApi28Function<decltype(&AAudioStream_getUsage)>("AAudioStream_getUsage");
++    static const auto getContentType = resolveApi28Function<decltype(&AAudioStream_getContentType)>(
++            "AAudioStream_getContentType");
+     StreamParameterSet defaultParams;
+     if ((builder.params.sharingMode == defaultParams.sharingMode
+          || AAudioStream_getSharingMode(m_stream) == builder.params.sharingMode)
+         && (builder.params.direction == defaultParams.direction
+             || AAudioStream_getDirection(m_stream) == builder.params.direction)
+         && (builder.params.outputUsage == defaultParams.outputUsage
+-            || AAudioStream_getUsage(m_stream) == builder.params.outputUsage)
++            || (getUsage && getUsage(m_stream) == builder.params.outputUsage))
+         && (builder.params.outputContentType == defaultParams.outputContentType
+-            || AAudioStream_getContentType(m_stream) == builder.params.outputContentType))
++            || (getContentType && getContentType(m_stream) == builder.params.outputContentType)))
+         m_areStreamParametersRespected = true;
+ 
+     if (builder.params.direction == AAUDIO_DIRECTION_OUTPUT
