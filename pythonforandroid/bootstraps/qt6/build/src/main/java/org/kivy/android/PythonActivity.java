@@ -40,9 +40,6 @@ import android.view.WindowManager;
 
 import android.net.Uri;
 
-import androidx.core.view.ViewCompat;
-import androidx.core.app.ActivityCompat;
-
 import org.renpy.android.ResourceManager;
 
 import org.kivy.android.launcher.Project;
@@ -50,7 +47,7 @@ import org.kivy.android.launcher.Project;
 
 import org.qtproject.qt.android.bindings.QtActivity;
 
-public class PythonActivity extends QtActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
+public class PythonActivity extends QtActivity {
     private static final String TAG = "PythonActivity";
 
     private ResourceManager resourceManager = null;
@@ -143,7 +140,7 @@ public class PythonActivity extends QtActivity implements ActivityCompat.OnReque
                     // The below forces a redraw of the window/view, which is needed on some phones
                     // to actually clear the flag. However on some other phones, it crashes the app...
                     // see https://github.com/spesmilo/electrum/issues/8522
-                    /*if (ViewCompat.isAttachedToWindow(window.getDecorView())) {
+                    /*if (window.getDecorView().isAttachedToWindow()) {
                         WindowManager wm = this.mActivity.getWindowManager();
                         wm.removeViewImmediate(window.getDecorView());
                         wm.addView(window.getDecorView(), window.getAttributes());
