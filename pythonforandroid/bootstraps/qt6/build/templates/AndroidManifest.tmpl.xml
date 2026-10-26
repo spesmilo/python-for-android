@@ -45,7 +45,6 @@
                  android:hardwareAccelerated="true"
                  android:extractNativeLibs="true"
                  android:name="org.qtproject.qt.android.bindings.QtApplication"
-                 android:allowNativeHeapPointerTagging="false"
                  android:enableOnBackInvokedCallback="false"
                  >
         {% for l in args.android_used_libs %}
