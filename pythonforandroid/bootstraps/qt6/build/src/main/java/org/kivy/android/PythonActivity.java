@@ -9,13 +9,10 @@ import java.util.ArrayList;
 import android.view.Window;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.util.Log;
 import android.os.Bundle;
 import android.content.pm.PackageManager;
 import android.view.WindowManager;
-
-import org.kivy.android.launcher.Project;
 
 import org.qtproject.qt.android.bindings.QtActivity;
 
@@ -63,29 +60,10 @@ public class PythonActivity extends QtActivity {
         Log.v(TAG, "Device: " + android.os.Build.DEVICE);
         Log.v(TAG, "Model: " + android.os.Build.MODEL);
 
-        if (getIntent() != null && getIntent().getAction() != null &&
-                getIntent().getAction().equals("org.kivy.LAUNCH")) {
-            File path = new File(getIntent().getData().getSchemeSpecificPart());
-
-            Project p = Project.scanDirectory(path);
-            String entry_point = getEntryPoint(p.dir);
-            nativeSetenv("ANDROID_ENTRYPOINT", p.dir + "/" + entry_point);
-            nativeSetenv("ANDROID_ARGUMENT", p.dir);
-            nativeSetenv("ANDROID_APP_PATH", p.dir);
-
-            if (p != null) {
-                if (p.landscape) {
-                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                } else {
-                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                }
-            }
-        } else {
-            String entry_point = getEntryPoint(app_root_dir);
-            nativeSetenv("ANDROID_ENTRYPOINT", entry_point);
-            nativeSetenv("ANDROID_ARGUMENT", app_root_dir);
-            nativeSetenv("ANDROID_APP_PATH", app_root_dir);
-        }
+        String entry_point = getEntryPoint(app_root_dir);
+        nativeSetenv("ANDROID_ENTRYPOINT", entry_point);
+        nativeSetenv("ANDROID_ARGUMENT", app_root_dir);
+        nativeSetenv("ANDROID_APP_PATH", app_root_dir);
 
         String mFilesDirectory = getFilesDir().getAbsolutePath();
         Log.v(TAG, "Setting env vars for start.c and Python to use");
