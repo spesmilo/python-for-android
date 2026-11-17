@@ -1,11 +1,10 @@
 import sh
 from os.path import join
 from pathlib import Path
-import copy
 import toml
 
 from pythonforandroid.logger import shprint, info
-from pythonforandroid.recipe import PyProjectRecipe, Recipe
+from pythonforandroid.recipe import PyProjectRecipe
 from pythonforandroid.toolchain import current_directory
 
 
@@ -61,10 +60,6 @@ class PyQt6Recipe(PyProjectRecipe):
         with open(join(build_dir, 'pyproject.toml'), 'w') as f:
             toml.dump(project_dict, f)
 
-    # def prebuild_arch(self, arch):
-    #     super().prebuild_arch(arch)
-    #     self.update_pyproject_toml(arch)
-
     def build_arch(self, arch):
         # super().build_arch(arch)  # NOTE: bypassing super().build_arch() might lead to issues..
         self.update_pyproject_toml(arch)
@@ -76,20 +71,6 @@ class PyQt6Recipe(PyProjectRecipe):
             info("compiling pyqt6")
 
             hostpython = self.get_recipe('hostpython3', self.ctx)
-            pythondir = hostpython.get_path_to_python()
-            site_packages = join(hostpython.site_dir)
-            env = copy.copy(env)
-            env['PYTHONPATH'] = ':'.join([
-                pythondir,
-                site_packages,
-                env.get('PYTHONPATH', '')
-            ])
-            env['PATH'] = ':'.join([
-                pythondir,
-                hostpython.local_bin,
-                env.get('PATH', '')
-            ])
-
             buildcmd = sh.Command(self.ctx.hostpython)
             sip_install = join(hostpython.local_bin, 'sip-install')
             info(f'ENV: {env}')
