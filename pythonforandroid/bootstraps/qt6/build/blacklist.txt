@@ -1,5 +1,7 @@
 # prevent user to include invalid extensions
 *.apk
+*.aab
+*.apks
 *.pxd
 
 # eggs
@@ -10,20 +12,6 @@ unittest/*
 
 # python config
 config/makesetup
-
-# unused kivy files (platform specific)
-kivy/input/providers/wm_*
-kivy/input/providers/mactouch*
-kivy/input/providers/probesysfs*
-kivy/input/providers/mtdev*
-kivy/input/providers/hidinput*
-kivy/core/camera/camera_videocapture*
-kivy/core/spelling/*osx*
-kivy/core/video/video_pyglet*
-kivy/tools
-kivy/tests/*
-kivy/*/*.h
-kivy/*/*.pxi
 
 # unused encodings
 lib-dynload/*codec*

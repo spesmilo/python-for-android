@@ -1,6 +1,5 @@
 from os.path import join, isfile
 from os import environ
-from multiprocessing import cpu_count
 import sh
 
 from pythonforandroid.recipe import Recipe
@@ -44,7 +43,6 @@ class HostQt6Recipe(Recipe):
         return join(self.get_build_container_dir(), 'install')
 
     def build_arch(self, arch):
-        # super().build_arch(arch)
         env = self.get_recipe_env(arch)
 
         build_dir = self.get_build_dir(arch.arch)
@@ -57,9 +55,6 @@ class HostQt6Recipe(Recipe):
             debug("environment: {}".format(env))
 
             configure = sh.Command('./configure')
-            # options?
-            shprint(configure, '--help', _env=env, _tail=50, _critical=True)
-
             configure = configure.bake('-opensource', '-confirm-license', '-disable-rpath')
             configure = configure.bake('-prefix', install_dir)
 
@@ -75,8 +70,6 @@ class HostQt6Recipe(Recipe):
 
             shprint(configure, _tail=50, _critical=True)
             cmake = sh.Command('cmake')
-            # shprint(sh.make, '-j' + str(cpu_count()), _critical=True)
-            # shprint(sh.make, '-j' + str(cpu_count()), 'install', _critical=True)
             shprint(cmake, '--build', '.', '--parallel', _critical=True)
             shprint(cmake, '--install', '.', _critical=True)
 

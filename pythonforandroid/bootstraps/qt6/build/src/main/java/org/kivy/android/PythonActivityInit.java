@@ -1,41 +1,34 @@
 package org.kivy.android;
 
-import java.io.InputStream;
 import java.io.File;
 
-import android.app.Activity;
 import android.util.Log;
 
 import android.content.Context;
 
-import org.renpy.android.ResourceManager;
-
 /*
- * this class is added to android.app.static_init_classes metadata key.
+ * Unpacks the app and sets up the environment for start.c. Qt 6.10 dropped
+ * the "android.app.static_init_classes" mechanism this class was originally
+ * registered with, so PythonActivity.onCreate() drives it explicitly.
  */
 public class PythonActivityInit {
     private static final String TAG = "PythonActivityInit";
 
     private PythonActivity mActivity;
-    // private QtActivityDelegate mLoader;
 
     static {
         Log.v(TAG, "PythonActivityInit static");
     }
 
-    public void setActivity(Activity activity, Object o) {
+    public void setActivity(PythonActivity activity) {
         Log.v(TAG, "PythonActivityInit setActivity running");
         Log.v(TAG, activity.getClass().getName());
-        mActivity = (PythonActivity)activity;
-        Log.v(TAG, o.getClass().getName());
-        // mLoader = (QtActivityDelegate)o;
+        mActivity = activity;
     }
 
     public void setContext(Context context) {
         Log.v(TAG, "PythonActivityInit setContext running");
         Log.v(TAG, context.getClass().getName());
-
-        // Log.v(TAG, "activity env = " + mActivity.ENVIRONMENT_VARIABLES);
 
         String app_root_dir = mActivity.getAppRoot();
 
@@ -44,8 +37,6 @@ public class PythonActivityInit {
         PythonUtil.unpackPyBundle(mActivity, mActivity.getApplicationInfo().nativeLibraryDir + "/" + "libpybundle", new File(app_root_dir), false);
         Log.v(TAG, "Device: " + android.os.Build.DEVICE);
         Log.v(TAG, "Model: " + android.os.Build.MODEL);
-
-        PythonActivity.initialize(); //Bundle extras = mActivity.getIntent().getExtras();
 
         String entry_point = mActivity.getEntryPoint(app_root_dir);
         PythonActivity.nativeSetenv("ANDROID_ENTRYPOINT", entry_point);
