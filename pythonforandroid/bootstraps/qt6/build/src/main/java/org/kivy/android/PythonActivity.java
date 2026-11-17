@@ -1,66 +1,27 @@
 package org.kivy.android;
 
-import android.os.SystemClock;
-
-import java.io.InputStream;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.Runnable;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 
-
-import android.view.ViewGroup;
-import android.view.KeyEvent;
 import android.view.Window;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.util.Log;
-import android.widget.Toast;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.PowerManager;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.widget.ImageView;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-
-import android.widget.AbsoluteLayout;
-import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
-
-import android.net.Uri;
-
-import org.renpy.android.ResourceManager;
-
 
 import org.qtproject.qt.android.bindings.QtActivity;
 
 public class PythonActivity extends QtActivity {
     private static final String TAG = "PythonActivity";
 
-    private ResourceManager resourceManager = null;
     public static PythonActivity mActivity = null;
-    public static boolean mBrokenLibraries;
-    protected static ViewGroup mLayout;
 
     public static native void nativeSetenv(String name, String value);
-
-    private static PythonActivityInit init = null;
-
-    static {
-        Log.v(TAG, "PythonActivity static");
-        init = new PythonActivityInit();
-    }
 
     public String getAppRoot() {
         return getFilesDir().getAbsolutePath() + "/app";
@@ -77,13 +38,6 @@ public class PythonActivity extends QtActivity {
         return "main.py";
     }
 
-    public static void initialize() {
-        // The static nature of the singleton and Android quirkyness force us to initialize everything here
-        // Otherwise, when exiting the app and returning to it, these variables *keep* their pre exit values
-        mLayout = null;
-        mBrokenLibraries = false;
-    }
-
     private void loadNativeLib() {
         Log.v(TAG, "loading native lib");
         try {
@@ -97,16 +51,40 @@ public class PythonActivity extends QtActivity {
         }
     }
 
+    private void unpackAndSetEnvironment() {
+        String app_root_dir = getAppRoot();
+
+        Log.v(TAG, "Ready to unpack");
+        PythonUtil.unpackAsset(this, "private", new File(app_root_dir), true);
+        PythonUtil.unpackPyBundle(this, getApplicationInfo().nativeLibraryDir + "/" + "libpybundle", new File(app_root_dir), false);
+        Log.v(TAG, "Device: " + android.os.Build.DEVICE);
+        Log.v(TAG, "Model: " + android.os.Build.MODEL);
+
+        String entry_point = getEntryPoint(app_root_dir);
+        nativeSetenv("ANDROID_ENTRYPOINT", entry_point);
+        nativeSetenv("ANDROID_ARGUMENT", app_root_dir);
+        nativeSetenv("ANDROID_APP_PATH", app_root_dir);
+
+        String mFilesDirectory = getFilesDir().getAbsolutePath();
+        Log.v(TAG, "Setting env vars for start.c and Python to use");
+        nativeSetenv("ANDROID_PRIVATE", mFilesDirectory);
+        nativeSetenv("ANDROID_UNPACK", app_root_dir);
+        nativeSetenv("PYTHONHOME", app_root_dir);
+        nativeSetenv("PYTHONPATH", app_root_dir + ":" + app_root_dir + "/lib");
+        nativeSetenv("PYTHONOPTIMIZE", "2");
+
+        Log.v(TAG, "Setting env vars for Qt");
+        nativeSetenv("QT_QUICK_CONTROLS_STYLE", "Material");
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.v(TAG, "My onCreate running");
-        resourceManager = new ResourceManager(this);
 
         this.mActivity = this;
 
         loadNativeLib();
-        init.setActivity(this, this);
-        init.setContext(this);
+        unpackAndSetEnvironment();
 
         super.onCreate(savedInstanceState);
     }
