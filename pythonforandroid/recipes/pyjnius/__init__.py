@@ -9,14 +9,13 @@ class PyjniusRecipe(PyProjectRecipe):
     version = '1.7.0'
     url = 'https://github.com/kivy/pyjnius/archive/{version}.zip'
     name = 'pyjnius'
-    depends = [('genericndkbuild', 'sdl2', 'sdl3', 'qt6')]
+    depends = [('genericndkbuild', 'sdl2', 'sdl3')]
     site_packages_name = 'jnius'
     hostpython_prerequisites = ["setuptools>=58.0.0", "wheel", "Cython<3.2"]
     patches = [
         "use_cython.patch",
         ('genericndkbuild_jnienv_getter.patch', will_build('genericndkbuild')),
         ('sdl3_jnienv_getter.patch', will_build('sdl3')),
-        ('qt6_jnienv_getter.patch', will_build('qt6'))
     ]
 
     def get_recipe_env(self, arch, **kwargs):

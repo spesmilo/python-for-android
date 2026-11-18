@@ -9,7 +9,7 @@ class Qt6Bootstrap(Bootstrap):
     name = 'qt6'
 
     recipe_depends = list(
-        set(Bootstrap.recipe_depends).union({'qt6'})
+        set(Bootstrap.recipe_depends).union({'genericndkbuild', 'qt6'})
     )
 
     def distribute_aidl(self, aidl_dir, dest_dir="src"):

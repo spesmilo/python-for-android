@@ -105,7 +105,7 @@ static void Android_JNI_ThreadDestroyed(void* value)
     }
 }
 
-void *Qt6_AndroidGetJNIEnv()
+void *WebView_AndroidGetJNIEnv()
 {
     return Android_JNI_GetEnv();
 }
