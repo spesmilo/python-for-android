@@ -12,7 +12,7 @@ class AndroidRecipe(IncludedFilesBehaviour, PyProjectRecipe):
 
     src_filename = 'src'
 
-    depends = [('sdl3', 'sdl2', 'genericndkbuild', 'qt6'), 'pyjnius']
+    depends = [('sdl3', 'sdl2', 'genericndkbuild'), 'pyjnius']
     hostpython_prerequisites = ["Cython>=0.29,<3.2"]
 
     config_env = {}
@@ -92,11 +92,6 @@ class AndroidRecipe(IncludedFilesBehaviour, PyProjectRecipe):
                 fh.write('JNIEnv *SDL_GetAndroidJNIEnv(void);\n')
                 fh.write(
                     '#define SDL_ANDROID_GetJNIEnv SDL_GetAndroidJNIEnv\n'
-                )
-            elif bootstrap == "qt6":
-                fh.write('JNIEnv *Qt6_AndroidGetJNIEnv(void);\n')
-                fh.write(
-                    '#define SDL_ANDROID_GetJNIEnv Qt6_AndroidGetJNIEnv\n'
                 )
             else:
                 fh.write('JNIEnv *WebView_AndroidGetJNIEnv(void);\n')
