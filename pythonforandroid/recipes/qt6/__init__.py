@@ -14,7 +14,7 @@ class Qt6Recipe(BootstrapNDKRecipe):
     built_libraries = {'dummy': '.'}
 
     depends = ['python3', 'hostqt6', 'ffmpeg_qt']
-    conflicts = ['sdl2', 'sdl3', 'genericndkbuild']
+    conflicts = ['sdl2', 'sdl3']
     patches = ['main-lib-abi-suffix.patch', 'compat-windowinsets.patch', 'qtmultimedia-aaudio-api26.patch',
                'deadlock-protector-no-fatal.patch']
 
@@ -109,12 +109,8 @@ class Qt6Recipe(BootstrapNDKRecipe):
 
         return super().get_libraries(arch_name, in_context)
 
-    def get_recipe_env(self, arch=None, with_flags_in_cc=True, with_python=True):
-        env = super().get_recipe_env(
-            arch=arch, with_flags_in_cc=with_flags_in_cc,
-            with_python=with_python,
-        )
-        env['APP_ALLOW_MISSING_DEPS'] = 'true'
+    def get_recipe_env(self, arch=None, with_flags_in_cc=True):
+        env = super().get_recipe_env(arch=arch, with_flags_in_cc=with_flags_in_cc)
         build_dir = self.get_build_dir(arch.arch)
         env['QT_INSTALL_PATH'] = join(build_dir, 'install')
         env['QT_EXT_PATH'] = join(self.ctx.libs_dir, 'bin')
@@ -124,10 +120,6 @@ class Qt6Recipe(BootstrapNDKRecipe):
         super().build_arch(arch)
 
         env = self.get_recipe_env(arch)
-        with current_directory(self.get_jni_dir()):
-            shprint(sh.Command(join(self.ctx.ndk_dir, "ndk-build")),
-                    "V=1", _env=env, _critical=True)
-
         build_dir = self.get_build_dir(arch.arch)
         with current_directory(build_dir):
             info("compiling qt6 from sources")
