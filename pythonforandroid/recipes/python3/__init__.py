@@ -208,7 +208,10 @@ class Python3Recipe(TargetPythonRecipe):
             self.patches.append('patches/cpython-311-ctypes-find-library.patch')
 
         if _p_version.minor >= 14:
-            self.patches.append('patches/3.14_armv7l_fix.patch')
+            # CPython >= 3.14.4 maps the "arm" machine to armeabi_v7a itself:
+            # https://github.com/python/cpython/commit/ab3d37fab654e2a11a65f05022371e3ea2d8f770
+            if _p_version < Version('3.14.4'):
+                self.patches.append('patches/3.14_armv7l_fix.patch')
             self.patches.append('patches/3.14_fix_remote_debug.patch')
 
         if shutil.which('lld') is not None:
