@@ -1020,7 +1020,7 @@ class PythonRecipe(Recipe):
         with current_directory(self.get_build_dir(arch.arch)):
             if self.install_in_targetpython:
                 shprint(self._host_recipe.pip, 'install', '.',
-                        '--no-build-isolation',
+                        '--no-build-isolation', '--no-deps',
                         '--compile', '--target',
                         self.ctx.get_python_install_dir(arch.arch),
                         _env=hpenv, *self.setup_extra_args
@@ -1045,7 +1045,7 @@ class PythonRecipe(Recipe):
         # hostpython's pip installs into hostpython's own site-packages
         # (its prefix already lives under site_root, so no --root)
         shprint(self._host_recipe.pip, 'install', '.',
-                '--no-build-isolation',
+                '--no-build-isolation', '--no-deps',
                 '--compile',
                 _env=env, *self.setup_extra_args)
 
