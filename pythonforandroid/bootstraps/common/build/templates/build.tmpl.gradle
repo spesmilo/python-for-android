@@ -31,18 +31,10 @@ apply plugin: 'com.android.application'
 {% endif %}
 
 android {
-    // AGP 9 generates R (and BuildConfig) into the namespace package, and no longer
-    // honours aapt's --custom-package. Electrum's java sources import
-    // org.electrum.electrum.res.R, while args.package varies with APP_PACKAGE_DOMAIN
-    // (mainnet vs testnet), so the namespace has to stay fixed and the real package
-    // is set as applicationId instead.
-    namespace 'org.electrum.electrum.res'
+    namespace '{{ args.package }}'
     compileSdkVersion {{ android_api }}
     buildToolsVersion '{{ build_tools_version }}'
     defaultConfig {
-        {%- if not is_library %}
-        applicationId '{{ args.package }}'
-        {%- endif %}
         minSdkVersion {{ args.min_sdk_version }}
         targetSdkVersion {{ args.android_target_sdk_version }}
         versionCode {{ args.numeric_version }}
