@@ -134,6 +134,13 @@ android {
         includeInBundle = false
     }
 
+    lint {
+        // By default, release builds run the lint checks for fatal errors, which is the only
+        // reason for gradle to download lint and its dependencies.
+        // https://developer.android.com/reference/tools/gradle-api/9.1/com/android/build/api/dsl/Lint#checkReleaseBuilds()
+        checkReleaseBuilds = false
+    }
+
 }
 
 dependencies {
