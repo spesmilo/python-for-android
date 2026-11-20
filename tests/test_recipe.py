@@ -130,6 +130,7 @@ class TestRecipe(unittest.TestCase):
         filename = 'Python-3.7.4.tgz'
         url = 'https://www.python.org/ftp/python/3.7.4/{}'.format(filename)
         recipe._url = url
+        recipe.sha512sum = '0' * 128
         recipe.ctx = Context()
         return recipe, filename
 

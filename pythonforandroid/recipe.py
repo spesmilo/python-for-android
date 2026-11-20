@@ -393,6 +393,8 @@ class Recipe(metaclass=RecipeMeta):
 
     def download(self):
         if self.url is None:
+            if any(getattr(self, f"{alg}sum", None) for alg in hashlib.algorithms_guaranteed):
+                raise ValueError(f"hash set for {self.name} recipe, which has no url to check it against")
             info('Skipping {} download as no URL is set'.format(self.name))
             return
 
@@ -410,6 +412,11 @@ class Recipe(metaclass=RecipeMeta):
                 expected_digest = ma.group(2)
             if expected_digest:
                 expected_digests[alg] = expected_digest
+        if not expected_digests:
+            raise ValueError(f"no hash set for {self.name} recipe")
+        if urlparse(url).scheme not in ('http', 'https'):
+            raise ValueError(f"{self.name} recipe: {url} is not a file download, "
+                             f"so its hash would not be checked")
 
         ensure_dir(join(self.ctx.packages_path, self.name))
 
