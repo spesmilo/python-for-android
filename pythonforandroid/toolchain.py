@@ -1044,6 +1044,12 @@ class ToolchainCL:
                     'build_tools >= 25 is required, but %s is installed' % build_tools_version)
             if not exists("gradlew"):
                 raise BuildInterruptingException("gradlew file is missing")
+            # gradle only checks the hashes of the files it downloads if the project has this file:
+            # https://docs.gradle.org/9.4.1/userguide/dependency_verification.html
+            if not exists(join("gradle", "verification-metadata.xml")):
+                raise BuildInterruptingException(
+                    "gradle/verification-metadata.xml is missing, "
+                    "so the gradle dependencies are not pinned by hashes")
 
             env["ANDROID_NDK_HOME"] = self.ctx.ndk_dir
             env["ANDROID_HOME"] = self.ctx.sdk_dir
